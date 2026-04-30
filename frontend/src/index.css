@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+/* Si Figma te dio colores específicos, puedes ponerlos aquí o en el config */
+@theme {
+  --color-ganadero-sidebar: #1e2235;
+  --color-ganadero-active: #2ecc71;
+  --color-ganadero-background: #f8f9fa;
+}

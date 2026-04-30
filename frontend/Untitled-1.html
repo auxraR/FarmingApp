@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>GanaderoApp</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
+
+body{display:flex;height:100vh;background:#e5e7eb;}
+
+/* SIDEBAR */
+.sidebar{
+width:250px;
+background:#0b1a2b;
+color:white;
+padding:20px;
+}
+
+.menu button{
+width:100%;
+padding:12px;
+margin-bottom:8px;
+border:none;
+background:transparent;
+color:#cbd5e1;
+text-align:left;
+border-radius:8px;
+cursor:pointer;
+}
+.menu button:hover{background:#132235;}
+.active{background:#1e293b !important;color:white !important;}
+
+/* MAIN */
+.main{flex:1;padding:30px;}
+
+.section{display:none;}
+.section.active{display:block;}
+
+.content{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:20px;
+}
+
+/* CARDS */
+.card{
+background:#1e293b;
+padding:18px;
+border-radius:12px;
+color:white;
+}
+
+/* FORM */
+input,select{
+width:100%;
+padding:8px;
+margin-top:6px;
+border-radius:6px;
+border:1px solid #334155;
+background:#273549;
+color:white;
+}
+
+.btn{
+width:100%;
+padding:10px;
+margin-top:10px;
+background:#334155;
+border:none;
+border-radius:6px;
+color:white;
+cursor:pointer;
+}
+
+/* REGISTROS */
+.registros{display:grid;gap:12px;}
+
+/* GRID PRODUCCIÓN */
+.prod-grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:20px;
+}
+
+/* GRAFICA */
+.chart{
+display:flex;
+align-items:flex-end;
+height:180px;
+margin-top:15px;
+}
+
+.bar{
+flex:1;
+margin:5px;
+background:#10b981; /* VERDE */
+border-radius:5px;
+text-align:center;
+font-size:10px;
+color:white;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+<h2>GanaderoApp</h2>
+
+<div class="menu">
+<button onclick="showSection('ganado')" class="active">Ganado</button>
+<button onclick="showSection('produccion')">Producción</button>
+</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- GANADO -->
+<div id="ganado" class="section active">
+<h2>Registro de Ganado</h2>
+
+<div class="content">
+
+<div class="card">
+<input id="codigo" placeholder="Código">
+<input id="nombre" placeholder="Nombre">
+
+<select id="tipo">
+<option>Vaca</option>
+<option>Toro</option>
+<option>Ternero</option>
+</select>
+
+<input id="raza" placeholder="Raza">
+<input id="peso" placeholder="Peso">
+
+<button class="btn" onclick="agregarAnimal()">Agregar</button>
+</div>
+
+<div class="registros">
+<div class="card"><h3>Últimos registros</h3></div>
+<div class="card" id="vacaBox">🐄 ---</div>
+<div class="card" id="toroBox">🐂 ---</div>
+<div class="card" id="terneroBox">🐄 ---</div>
+</div>
+
+</div>
+</div>
+
+<!-- PRODUCCIÓN -->
+<div id="produccion" class="section">
+<h2>Producción</h2>
+
+<div class="prod-grid">
+
+<!-- FORMULARIO -->
+<div class="card">
+<h3>Registrar Producción </h3>
+
+<input id="vacaProd" placeholder="Nombre de la vaca">
+<input id="litros" type="number" placeholder="Litros de leche">
+<input id="fecha" type="date">
+
+<button class="btn" onclick="registrarProduccion()">Guardar</button>
+
+<h3 style="margin-top:20px;">Registrar Venta </h3>
+
+<input id="ventaNombre" placeholder="Animal">
+<input id="precio" type="number" placeholder="Precio">
+
+<button class="btn" onclick="registrarVenta()">Guardar venta</button>
+
+<button class="btn" onclick="registrarCarne()">Guardar Venta de carne</button>
+</div>
+
+<!-- RESULTADOS -->
+<div class="registros">
+
+<div class="card">
+<h3>Mejores Vacas</h3>
+<p id="top1">---</p>
+<p id="top2">---</p>
+</div>
+
+<div class="card">
+<h3>Ventas Recientes</h3>
+<div id="ventas"></div>
+</div>
+
+<div class="card">
+<h3>Ganado para carne</h3>
+<h2 id="carneTotal">0</h2>
+</div>
+
+<div class="card">
+<h3>Producción anual</h3>
+
+<div class="chart">
+<div class="bar" id="m1">E</div>
+<div class="bar" id="m2">F</div>
+<div class="bar" id="m3">M</div>
+<div class="bar" id="m4">A</div>
+<div class="bar" id="m5">M</div>
+<div class="bar" id="m6">J</div>
+<div class="bar" id="m7">J</div>
+<div class="bar" id="m8">A</div>
+<div class="bar" id="m9">S</div>
+<div class="bar" id="m10">O</div>
+<div class="bar" id="m11">N</div>
+<div class="bar" id="m12">D</div>
+</div>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+/* SECCIONES */
+function showSection(id){
+document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+document.getElementById(id).classList.add('active');
+}
+
+/* DATOS */
+let animales=[];
+let produccion=[];
+let ventas=[];
+let carne=0;
+
+/* GANADO */
+function agregarAnimal(){
+let a={
+nombre:nombre.value,
+tipo:tipo.value
+};
+
+animales.push(a);
+
+if(a.tipo==="Vaca") vacaBox.innerText=`🐄 ${a.nombre}`;
+if(a.tipo==="Toro") toroBox.innerText=`🐂 ${a.nombre}`;
+if(a.tipo==="Ternero") terneroBox.innerText=`🐄 ${a.nombre}`;
+}
+
+/* PRODUCCIÓN */
+function registrarProduccion(){
+
+let nombre=vacaProd.value;
+let litros=parseInt(litrosInput());
+
+function litrosInput(){return document.getElementById("litros").value;}
+
+let fecha=document.getElementById("fecha").value;
+let mes=new Date(fecha).getMonth()+1;
+
+produccion.push({nombre,litros,mes});
+
+/* TOP */
+let orden=produccion.sort((a,b)=>b.litros-a.litros);
+
+if(orden[0]) top1.innerText=`🐄 ${orden[0].nombre} - ${orden[0].litros}L`;
+if(orden[1]) top2.innerText=`🐄 ${orden[1].nombre} - ${orden[1].litros}L`;
+
+/* GRAFICA */
+let bar=document.getElementById("m"+mes);
+bar.style.height=(bar.offsetHeight + litros*2)+"px";
+
+}
+
+/* VENTAS */
+function registrarVenta(){
+let n=ventaNombre.value;
+let p=precio.value;
+
+let item=document.createElement("p");
+item.innerText=`${n} - $${p}`;
+document.getElementById("ventas").appendChild(item);
+}
+
+/* CARNE */
+function registrarCarne(){
+carne++;
+carneTotal.innerText=carne;
+}
+
+</script>
+
+</body>
+</html>
