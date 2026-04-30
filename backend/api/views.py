@@ -1,7 +1,7 @@
 from rest_framework import viewsets, filters
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import Livestock, Batch, FeedingLog, HealthAction
-from .serializers import LivestockSerializer, BatchSerializer, FeedingLogSerializer, HealthActionSerializer
+from .models import Livestock, Batch, FeedingLog, HealthAction, WeightControl
+from .serializers import LivestockSerializer, BatchSerializer, FeedingLogSerializer, HealthActionSerializer, WeightControlSerializer
 
 class LivestockViewSet(viewsets.ModelViewSet):
     queryset = Livestock.objects.all().order_by('-id')
@@ -26,6 +26,18 @@ class HealthActionViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = HealthAction.objects.all().order_by('-fecha')
+        animal_id = self.request.query_params.get('animal_id', None)
+        if animal_id is not None:
+            queryset = queryset.filter(animal_id=animal_id)
+        return queryset
+    
+
+class WeightControlViewSet(viewsets.ModelViewSet):
+    serializer_class = WeightControlSerializer
+
+    def get_queryset(self):
+        # Ordenamos del más reciente al más antiguo
+        queryset = WeightControl.objects.all().order_by('-fecha')
         animal_id = self.request.query_params.get('animal_id', None)
         if animal_id is not None:
             queryset = queryset.filter(animal_id=animal_id)

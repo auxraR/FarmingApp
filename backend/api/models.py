@@ -50,7 +50,6 @@ class FeedingLog(models.Model):
 
 class HealthAction(models.Model):
     id = models.AutoField(primary_key=True, db_column='ID_accion')
-    # Relación con la tabla Ganado
     animal = models.ForeignKey(Livestock, on_delete=models.CASCADE, db_column='ID_ganado')
     tipo_evento = models.CharField(max_length=100, db_column='Tipo_evento')
     dosis = models.CharField(max_length=50, db_column='Dosis')
@@ -60,3 +59,13 @@ class HealthAction(models.Model):
     class Meta:
         managed = False
         db_table = 'Acciones_sanitarias'
+
+class WeightControl(models.Model):
+    id = models.AutoField(primary_key=True, db_column='ID_pesaje')
+    animal = models.ForeignKey(Livestock, on_delete=models.CASCADE, db_column='ID_ganado')
+    peso = models.DecimalField(max_digits=10, decimal_places=2, db_column='Peso')
+    fecha = models.DateField(db_column='Fecha')
+
+    class Meta:
+        managed = False  
+        db_table = 'Control_pesaje'

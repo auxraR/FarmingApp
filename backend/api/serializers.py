@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Livestock, Batch, FeedingLog
+from .models import Livestock, Batch, FeedingLog, HealthAction, WeightControl
 
 class LivestockSerializer(serializers.ModelSerializer):
     class Meta:
@@ -21,9 +21,13 @@ class FeedingLogSerializer(serializers.ModelSerializer):   # Esto es para que en
         fields = '__all__'
 
 
-from .models import HealthAction
-
 class HealthActionSerializer(serializers.ModelSerializer):
     class Meta:
         model = HealthAction
+        fields = '__all__'
+
+
+class WeightControlSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WeightControl
         fields = '__all__'

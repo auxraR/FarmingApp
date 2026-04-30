@@ -62,23 +62,24 @@ export default function HealthPage() {
       setVaccineHistory(Array.isArray(vaccineRes.data) ? vaccineRes.data : vaccineRes.data.results || []);
     } catch (err) {
       console.error("Error loading health data", err);
-      // Fallback
-      setWeightHistory([{ id: 1, peso: animal.peso, fecha: '2026-04-01' }]);
-      setVaccineHistory([{ id: 1, tipo_evento: 'Vacuna Ántrax', fecha: '2026-04-10' }]);
+      setWeightHistory([]); 
+      setVaccineHistory([]);
     }
   };
 
   const handleWeightSubmit = async (e) => {
     e.preventDefault();
     try {
-      const payload = { id_ganado: selectedAnimal.id, peso: weightForm.peso, fecha: weightForm.fecha };
-      // await apiClient.post('/weight-control/', payload); // Descomentar cuando la vista esté lista
+      const payload = { animal: selectedAnimal.id, peso: weightForm.peso, fecha: weightForm.fecha };
+      
+      await apiClient.post('/weight-control/', payload); 
       
       setWeightHistory(prev => [{ id: Date.now(), ...payload }, ...prev]);
       setWeightForm({ ...weightForm, peso: '' });
       
       Swal.fire({ title: 'Updated!', text: 'Weight recorded successfully.', icon: 'success', background: '#1a1c26', color: '#ffffff', timer: 1500, showConfirmButton: false });
     } catch (err) {
+      console.error(err);
       Swal.fire({ title: 'Error', text: 'Could not save weight.', icon: 'error', background: '#1a1c26', color: '#ffffff' });
     }
   };

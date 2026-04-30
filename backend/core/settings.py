@@ -76,12 +76,6 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
 
 
 # Password validation
@@ -126,14 +120,18 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
 ]
 
+
 DATABASES = {
     'default': {
         'ENGINE': 'mssql',
         'NAME': 'BaltodanoFarm',
-        'HOST': 'localhost', 
+        'USER': 'SA',  
+        'PASSWORD': 'Mirai2028.', 
+        'HOST': '127.0.0.1',
+        'PORT': '1433',
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',
-            'extra_params': 'Trusted_Connection=yes;',
+            'extra_params': 'TrustServerCertificate=yes;Trusted_Connection=no;',
         },
     }
 }

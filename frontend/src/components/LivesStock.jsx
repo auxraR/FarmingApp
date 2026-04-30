@@ -24,7 +24,7 @@ export default function LivestockPage() {
     try {
       const res = await apiClient.get(`/livestock/?search=${searchTerm}`);
       const data = Array.isArray(res.data) ? res.data : res.data.results;
-      setAnimals(data.slice(0, 10)); // Keeping a nice limit
+      setAnimals(data.slice(0, 7)); 
     } catch (err) {
       console.error("Error fetching data:", err);
     } finally {
