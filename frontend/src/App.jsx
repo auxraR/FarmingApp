@@ -7,7 +7,7 @@ import HealthPage from "./components/Healty";
 function App() {
   return (
     <BrowserRouter>
-      <div className="flex min-h-screen bg-[#0f111a] text-white">
+      <div className="flex min-h-screen bg-[#fff] text-white">
         <Sidebar /> 
 
         <main className="flex-1 p-8 overflow-y-auto">

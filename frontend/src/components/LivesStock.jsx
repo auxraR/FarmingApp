@@ -149,7 +149,7 @@ const handleSubmit = async (e) => {
 };
 
   return (
-    <div className="space-y-6 text-white p-4">
+    <div className="space-y-6 text-black p-4">
       
       {/* HEADER & SEARCH */}
       <div className="flex justify-between items-center">
@@ -158,7 +158,7 @@ const handleSubmit = async (e) => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
           <input 
             type="text" placeholder="Search by name or ID..." 
-            className="w-full bg-[#1a1c26] border border-white/10 rounded-xl py-2 pl-10 pr-4 outline-none focus:border-ganadero-active transition-all"
+            className="w-full bg-[#B8C7D4] border border-white/10 rounded-xl py-2 pl-10 pr-4 outline-none focus:border-ganadero-active transition-all"
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
@@ -168,7 +168,7 @@ const handleSubmit = async (e) => {
         
         {/* LEFT COLUMN: FORM */}
         <div className="lg:col-span-4">
-          <div className={`bg-[#1a1c26] border ${editingId ? 'border-ganadero-active shadow-lg shadow-ganadero-active/10' : 'border-white/10'} rounded-2xl p-6 transition-all duration-300`}>
+          <div className={`bg-[#B8C7D4] border ${editingId ? 'border-ganadero-active shadow-lg shadow-ganadero-active/10' : 'border-white/10'} rounded-2xl p-6 transition-all duration-300`}>
             <div className="flex justify-between items-center mb-6">
               <h2 className="font-bold flex items-center gap-2">
                 {editingId ? <RefreshCw size={20} className="text-ganadero-active" /> : <Plus size={20} className="text-ganadero-active" />}
@@ -183,19 +183,19 @@ const handleSubmit = async (e) => {
 
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
-                <label className="text-[10px] text-gray-500 uppercase font-black">Name *</label>
+                <label className="text-[10px] text-black-500 uppercase font-black">Name *</label>
                 <input required className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-sm outline-none focus:border-ganadero-active"
                   value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] text-gray-500 uppercase font-black">Breed *</label>
+                  <label className="text-[10px] text-black-500 uppercase font-black">Breed *</label>
                   <input required className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-sm outline-none focus:border-ganadero-active"
                     value={formData.raza} onChange={e => setFormData({...formData, raza: e.target.value})} />
                 </div>
                 <div>
-                  <label className="text-[10px] text-gray-500 uppercase font-black">Weight (kg) *</label>
+                  <label className="text-[10px] text-black-500 uppercase font-black">Weight (kg) *</label>
                   <input required type="number" step="0.01" className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-sm outline-none focus:border-ganadero-active"
                     value={formData.peso} onChange={e => setFormData({...formData, peso: e.target.value})} />
                 </div>
@@ -203,12 +203,12 @@ const handleSubmit = async (e) => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] text-gray-500 uppercase font-black">Age *</label>
+                  <label className="text-[10px] text-black-500 uppercase font-black">Age *</label>
                   <input required type="number" className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-sm outline-none focus:border-ganadero-active"
                     value={formData.edad} onChange={e => setFormData({...formData, edad: e.target.value})} />
                 </div>
                 <div>
-                  <label className="text-[10px] text-gray-500 uppercase font-black">Gender</label>
+                  <label className="text-[10px] text-black-500 uppercase font-black">Gender</label>
                   <select className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-sm outline-none focus:border-ganadero-active"
                     value={formData.sexo} onChange={e => setFormData({...formData, sexo: e.target.value})}>
                     <option value="Hembra">Female</option>
@@ -218,14 +218,14 @@ const handleSubmit = async (e) => {
               </div>
 
               <div>
-                <label className="text-[10px] text-gray-500 uppercase font-black">Birth Date *</label>
+                <label className="text-[10px] text-black-500 uppercase font-black">Birth Date *</label>
                 <input required type="date" className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-sm outline-none focus:border-ganadero-active"
                   value={formData.fecha_nacimiento} onChange={e => setFormData({...formData, fecha_nacimiento: e.target.value})} />
               </div>
 
               {/* OPTIONAL FIELDS */}
               <div className="pt-2 border-t border-white/5 space-y-3">
-                <p className="text-[9px] text-ganadero-active/50 font-bold tracking-widest uppercase">Parental Data (Optional)</p>
+                <p className="text-[10px] text-black-500 font-bold tracking-widest uppercase">Parental Data (Optional)</p>
                 <div className="grid grid-cols-2 gap-3">
                   <input placeholder="Mother ID" type="number" className="w-full bg-black/10 border border-white/5 rounded-lg p-2 text-xs outline-none"
                     value={formData.id_madre} onChange={e => setFormData({...formData, id_madre: e.target.value})} />
@@ -245,10 +245,10 @@ const handleSubmit = async (e) => {
 
         {/* RIGHT COLUMN: TABLE */}
         <div className="lg:col-span-8">
-          <div className="bg-[#1a1c26] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+          <div className="bg-[#f8f9fa] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-black/40 text-gray-500 text-[10px] uppercase tracking-tighter font-black">
+                <tr className="bg-black/40 text-black-500 text-[10px] uppercase tracking-tighter font-black">
                   <th className="p-4">ID</th>
                   <th className="p-4">Animal</th>
                   <th className="p-4">Breed</th>
@@ -259,13 +259,13 @@ const handleSubmit = async (e) => {
               <tbody className="divide-y divide-white/5">
                 {animals.map((animal) => (
                   <tr key={animal.id} onClick={() => handleViewPreview(animal)} className="hover:bg-white/[0.03] cursor-pointer transition-colors group">
-                    <td className="p-4 text-xs font-mono text-ganadero-active">#{animal.id}</td>
-                    <td className="p-4 font-bold text-white">
+                    <td className="p-4 text-xs font-mono text-black-500 font-bold">#{animal.id}</td>
+                    <td className="p-4 font-bold text-black-700 group-hover:text-green-500 transition-colors">
                       {animal.nombre}
-                      <span className="block text-[10px] text-gray-500 font-normal">{animal.sexo}</span>
+                      <span className="block text-[10px] text-black-500 font-normal">{animal.sexo}</span>
                     </td>
-                    <td className="p-4 text-sm text-gray-400">{animal.raza}</td>
-                    <td className="p-4 text-sm font-black text-white">{animal.peso} <span className="text-[10px] text-ganadero-active font-normal">KG</span></td>
+                    <td className="p-4 text-sm text-black-500">{animal.raza}</td>
+                    <td className="p-4 text-sm font-black text-black-700">{animal.peso} <span className="text-[10px] text-black-500 font-bold">KG</span></td>
                     <td className="p-4">
                       <div className="flex justify-center gap-3">
                         {/* Notice the stopPropagation inside these functions */}
