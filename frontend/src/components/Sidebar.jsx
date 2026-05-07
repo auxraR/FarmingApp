@@ -11,6 +11,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  ChartSpline,
 } from "lucide-react";
 import { cn } from "./ui/utils";
 
@@ -20,7 +21,8 @@ const menuItems = [
   { name: "Feeding", path: "/feeding", icon: Sprout },
   { name: "Health", path: "/health", icon: Stethoscope },
   { name: "Production", path: "/production", icon: TrendingUp },
-  { name: "Finances", path: "/finances", icon: DollarSign },
+  {name: "Sales", path: "/sales", icon: DollarSign},
+  { name: "Finances", path: "/finances", icon: ChartSpline },
   { name: "Reports", path: "/reports", icon: BarChart3 },
   { name: "Settings", path: "/settings", icon: Settings },
 ];

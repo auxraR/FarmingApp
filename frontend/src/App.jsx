@@ -3,6 +3,8 @@ import Sidebar from "./components/Sidebar";
 import LivestockDashboard from "./components/LivesStock";
 import FeedingPage from "./components/Feeding";
 import HealthPage from "./components/Healty";
+import ProductionPage from "./components/Production";
+import SalesPage from "./components/Sales";
 
 function App() {
   return (
@@ -16,6 +18,8 @@ function App() {
             <Route path="/livestock" element={<LivestockDashboard />} />
             <Route path="/feeding" element={<FeedingPage />} />
             <Route path="/health" element={<HealthPage />} />
+            <Route path="/production" element={<ProductionPage />} />
+            <Route path="/sales" element={<SalesPage />} />
             <Route path="*" element={<div className="p-6">page not found</div>} />
           </Routes>
         </main>

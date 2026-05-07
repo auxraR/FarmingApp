@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import apiClient from '../api/client';
-import { Plus, Trash2, Edit2, X, Beef } from 'lucide-react';
+import { Plus, Trash2, Edit2, X } from 'lucide-react';
 import Swal from 'sweetalert2'
 
 export default function FeedingPage() {
@@ -97,7 +97,7 @@ const handleDelete = async (e, id) => {
         'The record has been deleted.',
         'success'
       );
-    } catch (error) {
+    } catch {
       Swal.fire(
         'Error',
         'Could not delete the record.',
@@ -142,17 +142,17 @@ const handleSave = async (e) => {
   if (loading) return <div className="p-8 text-ganadero-active animate-pulse">Loading data...</div>;
 
   return (
-    <div className="space-y-6 text-white p-4">
+    <div className="space-y-6 text-black-700 p-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Feeding Records</h1>
+        <h1 className="text-2xl font-bold text-black-700">Feeding Records</h1>
         <button onClick={handleAddNew} className="bg-ganadero-active text-black px-4 py-2 rounded-xl font-bold flex items-center gap-2">
           <Plus size={18}/> New Entry
         </button>
       </div>
 
-      <div className="bg-[#1a1c26] rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
+      <div className="bg-[#f8f9fa] rounded-2xl border border-black/10 overflow-hidden shadow-2xl">
         <table className="w-full text-left">
-          <thead className="bg-black/40 text-gray-500 text-[10px] font-black uppercase tracking-widest">
+          <thead className="bg-black/5 text-gray-600 text-[10px] font-black uppercase tracking-widest">
             <tr>
               <th className="p-4">Date</th>
               <th className="p-4">Batch</th>
@@ -161,13 +161,13 @@ const handleSave = async (e) => {
               <th className="p-4 text-center">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5">
+          <tbody className="divide-y divide-black/10">
             {logs.map((log) => (
-              <tr key={log.id} onClick={() => handleViewDetails(log)} className="hover:bg-white/[0.03] cursor-pointer transition-colors group">
-                <td className="p-4 text-xs text-gray-400">{log.date}</td>
-                <td className="p-4 font-bold text-white">{log.batch_name}</td>
-                <td className="p-4 text-sm">{log.food_type}</td>
-                <td className="p-4 text-sm font-bold text-ganadero-active">{log.quantity_kg} kg</td>
+              <tr key={log.id} onClick={() => handleViewDetails(log)} className="hover:bg-black/5 cursor-pointer transition-colors group">
+                <td className="p-4 text-xs text-gray-600">{log.date}</td>
+                <td className="p-4 font-bold text-black-700 group-hover:text-green-600 transition-colors">{log.batch_name}</td>
+                <td className="p-4 text-sm text-gray-700">{log.food_type}</td>
+                <td className="p-4 text-sm font-bold text-black-700">{log.quantity_kg} kg</td>
                 <td className="p-4 text-center">
                   <div className="flex justify-center gap-2">
                     <button onClick={(e) => handleEditClick(e, log)} className="p-2 hover:bg-blue-500/20 text-blue-400 rounded-lg"><Edit2 size={14}/></button>
@@ -182,41 +182,41 @@ const handleSave = async (e) => {
 
       {/* MODAL MULTIUSO */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1a1c26] border border-white/10 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden">
-            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-              <h2 className="text-xl font-bold">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-[#f8f9fa] border border-black/10 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden text-black-700">
+            <div className="p-6 border-b border-black/10 flex justify-between items-center bg-black/5">
+              <h2 className="text-xl font-bold text-black-700">
                 {isEditing ? (selectedLog ? 'Edit Record' : 'New Entry') : 'Record Details'}
               </h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-white"><X size={20}/></button>
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-black"><X size={20}/></button>
             </div>
 
             <div className="p-6">
               {selectedLog && !isEditing ? (
                 <div className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-black/20 p-4 rounded-2xl">
-                      <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Batch</p>
-                      <p className="text-lg font-bold text-ganadero-active">{selectedLog.batch_name}</p>
+                    <div className="bg-white p-4 rounded-2xl border border-black/10">
+                      <p className="text-[10px] text-gray-600 uppercase font-black tracking-widest">Batch</p>
+                      <p className="text-lg font-bold text-black-700">{selectedLog.batch_name}</p>
                     </div>
-                    <div className="bg-black/20 p-4 rounded-2xl">
-                      <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Date</p>
-                      <p className="text-lg font-bold">{selectedLog.date}</p>
+                    <div className="bg-white p-4 rounded-2xl border border-black/10">
+                      <p className="text-[10px] text-gray-600 uppercase font-black tracking-widest">Date</p>
+                      <p className="text-lg font-bold text-black-700">{selectedLog.date}</p>
                     </div>
                   </div>
-                  <div className="bg-black/20 p-4 rounded-2xl">
-                    <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Observations</p>
-                    <p className="text-sm text-gray-300 mt-1">{selectedLog.observations || 'No observations recorded.'}</p>
+                  <div className="bg-white p-4 rounded-2xl border border-black/10">
+                    <p className="text-[10px] text-gray-600 uppercase font-black tracking-widest">Observations</p>
+                    <p className="text-sm text-gray-700 mt-1">{selectedLog.observations || 'No observations recorded.'}</p>
                   </div>
-                  <button onClick={() => setIsEditing(true)} className="w-full bg-white/5 hover:bg-white/10 py-3 rounded-xl font-bold transition-all">
+                  <button onClick={() => setIsEditing(true)} className="w-full bg-ganadero-active text-black hover:bg-ganadero-active/90 py-3 rounded-xl font-bold transition-all">
                     Edit Information
                   </button>
                 </div>
               ) : (
                 <form onSubmit={handleSave} className="space-y-4">
                   <div>
-                    <label className="text-[10px] text-gray-500 font-black uppercase">Batch</label>
-                    <select required className="w-full bg-black/40 border border-white/10 rounded-xl p-3 mt-1 outline-none focus:border-ganadero-active"
+                    <label className="text-[10px] text-gray-600 font-black uppercase">Batch</label>
+                    <select required className="w-full bg-white border border-black/10 rounded-xl p-3 mt-1 outline-none focus:border-ganadero-active"
                       value={formData.batch} onChange={e => setFormData({...formData, batch: e.target.value})}>
                       <option value="">Select Batch...</option>
                       {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -224,19 +224,19 @@ const handleSave = async (e) => {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[10px] text-gray-500 font-black uppercase">Food Type</label>
-                      <input required className="w-full bg-black/40 border border-white/10 rounded-xl p-3 mt-1 outline-none focus:border-ganadero-active"
+                      <label className="text-[10px] text-gray-600 font-black uppercase">Food Type</label>
+                      <input required className="w-full bg-white border border-black/10 rounded-xl p-3 mt-1 outline-none focus:border-ganadero-active"
                         value={formData.food_type} onChange={e => setFormData({...formData, food_type: e.target.value})} />
                     </div>
                     <div>
-                      <label className="text-[10px] text-gray-500 font-black uppercase">Qty (kg)</label>
-                      <input required type="number" step="0.1" className="w-full bg-black/40 border border-white/10 rounded-xl p-3 mt-1 outline-none focus:border-ganadero-active"
+                      <label className="text-[10px] text-gray-600 font-black uppercase">Qty (kg)</label>
+                      <input required type="number" step="0.1" className="w-full bg-white border border-black/10 rounded-xl p-3 mt-1 outline-none focus:border-ganadero-active"
                         value={formData.quantity_kg} onChange={e => setFormData({...formData, quantity_kg: e.target.value})} />
                     </div>
                   </div>
                   <div>
-                    <label className="text-[10px] text-gray-500 font-black uppercase">Observations</label>
-                    <textarea className="w-full bg-black/40 border border-white/10 rounded-xl p-3 mt-1 h-24 outline-none resize-none focus:border-ganadero-active"
+                    <label className="text-[10px] text-gray-600 font-black uppercase">Observations</label>
+                    <textarea className="w-full bg-white border border-black/10 rounded-xl p-3 mt-1 h-24 outline-none resize-none focus:border-ganadero-active"
                       value={formData.observations} onChange={e => setFormData({...formData, observations: e.target.value})} />
                   </div>
                   <button type="submit" className="w-full bg-ganadero-active text-black font-bold py-4 rounded-2xl shadow-lg shadow-ganadero-active/20 transition-all hover:scale-[1.02]">
