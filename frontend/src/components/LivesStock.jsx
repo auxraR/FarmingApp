@@ -13,7 +13,6 @@ export default function LivestockPage() {
   const [selectedAnimal, setSelectedAnimal] = useState(null);
   const [editingId, setEditingId] = useState(null);
 
-  // Form State
   const [formData, setFormData] = useState({
     nombre: '', fecha_nacimiento: '', edad: '', peso: '', raza: '', sexo: 'Hembra',
     id_madre: '', id_padre: '', metodo_obtencion: '' 
@@ -22,7 +21,7 @@ export default function LivestockPage() {
   const fetchAnimals = async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get(`/livestock/?search=${searchTerm}`);
+      const res = await apiClient.get(`/livestock/?search=${searchTerm}&estado=1`);
       const data = Array.isArray(res.data) ? res.data : res.data.results;
       setAnimals(data.slice(0, 7)); 
     } catch (err) {
@@ -42,7 +41,7 @@ export default function LivestockPage() {
   };
 
   const handleEdit = (e, animal) => {
-    e.stopPropagation(); // Prevents the row click from opening the modal
+    e.stopPropagation(); 
     setEditingId(animal.id);
     setFormData({
       nombre: animal.nombre || '',
@@ -65,7 +64,7 @@ export default function LivestockPage() {
   const handleDelete = async (e, id) => {
     e.stopPropagation();
 
-    // Initial confirmation dialog
+
     const result = await Swal.fire({
       title: 'Are you sure?',
       text: "You are about to remove this animal from BaltodanoFarm. This action cannot be undone!",
@@ -109,55 +108,11 @@ export default function LivestockPage() {
 
 const handleSubmit = async (e) => {
   e.preventDefault();
-  const pesoNum = Number(formData.peso);
-  const edadNum = Number(formData.edad);
-  const madreNum = formData.id_madre === '' ? null : Number(formData.id_madre);
-  const padreNum = formData.id_padre === '' ? null : Number(formData.id_padre);
-
-  if (!Number.isFinite(pesoNum) || pesoNum < 0) {
-    Swal.fire({
-      title: 'Invalid Weight',
-      text: 'Weight cannot be negative.',
-      icon: 'error',
-      confirmButtonText: 'OK',
-    });
-    return;
-  }
-  if (!Number.isFinite(edadNum) || edadNum < 0) {
-    Swal.fire({
-      title: 'Invalid Age',
-      text: 'Age cannot be negative.',
-      icon: 'error',
-      confirmButtonText: 'OK',
-    });
-    return;
-  }
-  if (madreNum !== null && (!Number.isFinite(madreNum) || madreNum < 0)) {
-    Swal.fire({
-      title: 'Invalid Mother ID',
-      text: 'Mother ID cannot be negative.',
-      icon: 'error',
-      confirmButtonText: 'OK',
-    });
-    return;
-  }
-  if (padreNum !== null && (!Number.isFinite(padreNum) || padreNum < 0)) {
-    Swal.fire({
-      title: 'Invalid Father ID',
-      text: 'Father ID cannot be negative.',
-      icon: 'error',
-      confirmButtonText: 'OK',
-    });
-    return;
-  }
-
   try {
     const cleanData = {
       ...formData,
-      peso: pesoNum,
-      edad: edadNum,
-      id_madre: madreNum,
-      id_padre: padreNum,
+      id_madre: formData.id_madre || null,
+      id_padre: formData.id_padre || null,
       metodo_obtencion: formData.metodo_obtencion || null,
     };
 
@@ -240,7 +195,7 @@ const handleSubmit = async (e) => {
                 </div>
                 <div>
                   <label className="text-[10px] text-black-500 uppercase font-black">Weight (kg) *</label>
-                  <input required type="number" step="0.01" min="0" className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-sm outline-none focus:border-ganadero-active"
+                  <input required type="number" step="0.01" className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-sm outline-none focus:border-ganadero-active"
                     value={formData.peso} onChange={e => setFormData({...formData, peso: e.target.value})} />
                 </div>
               </div>
@@ -248,7 +203,7 @@ const handleSubmit = async (e) => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] text-black-500 uppercase font-black">Age *</label>
-                  <input required type="number" min="0" className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-sm outline-none focus:border-ganadero-active"
+                  <input required type="number" className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-sm outline-none focus:border-ganadero-active"
                     value={formData.edad} onChange={e => setFormData({...formData, edad: e.target.value})} />
                 </div>
                 <div>
@@ -271,9 +226,9 @@ const handleSubmit = async (e) => {
               <div className="pt-2 border-t border-white/5 space-y-3">
                 <p className="text-[10px] text-black-500 font-bold tracking-widest uppercase">Parental Data (Optional)</p>
                 <div className="grid grid-cols-2 gap-3">
-                  <input placeholder="Mother ID" type="number" min="0" className="w-full bg-black/10 border border-white/5 rounded-lg p-2 text-xs outline-none"
+                  <input placeholder="Mother ID" type="number" className="w-full bg-black/10 border border-white/5 rounded-lg p-2 text-xs outline-none"
                     value={formData.id_madre} onChange={e => setFormData({...formData, id_madre: e.target.value})} />
-                  <input placeholder="Father ID" type="number" min="0" className="w-full bg-black/10 border border-white/5 rounded-lg p-2 text-xs outline-none"
+                  <input placeholder="Father ID" type="number" className="w-full bg-black/10 border border-white/5 rounded-lg p-2 text-xs outline-none"
                     value={formData.id_padre} onChange={e => setFormData({...formData, id_padre: e.target.value})} />
                 </div>
                 <input placeholder="Acquisition Method (Purchase, Birth...)" className="w-full bg-black/10 border border-white/5 rounded-lg p-2 text-xs outline-none"
@@ -327,63 +282,63 @@ const handleSubmit = async (e) => {
 
       {/* ANIMAL CV MODAL (Preview) */}
       {isModalOpen && selectedAnimal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-[#f8f9fa] border border-black/10 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row animate-in fade-in zoom-in duration-200 text-black-700">
-             
-             {/* LEFT SIDE: PHOTO PLACEHOLDER */}
-            <div className="w-full md:w-2/5 bg-black/5 p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-black/10 relative">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1a1c26] border border-white/10 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row animate-in fade-in zoom-in duration-200">
+            
+            {/* LEFT SIDE: PHOTO PLACEHOLDER */}
+            <div className="w-full md:w-2/5 bg-black/40 p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-white/5 relative">
               <div className="absolute top-4 left-4">
-                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${selectedAnimal.sexo === 'Hembra' ? 'bg-pink-500/15 text-pink-700' : 'bg-blue-500/15 text-blue-700'}`}>
+                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${selectedAnimal.sexo === 'Hembra' ? 'bg-pink-500/20 text-pink-400' : 'bg-blue-500/20 text-blue-400'}`}>
                   {selectedAnimal.sexo}
                 </span>
               </div>
-              <div className="w-32 h-32 rounded-full border-4 border-ganadero-active flex items-center justify-center bg-white mb-4 shadow-xl shadow-ganadero-active/20">
-                <Camera size={40} className="text-gray-500" />
+              <div className="w-32 h-32 rounded-full border-4 border-ganadero-active flex items-center justify-center bg-[#1a1c26] mb-4 shadow-xl shadow-ganadero-active/20">
+                <Camera size={40} className="text-gray-600" />
               </div>
-              <p className="text-[10px] text-gray-600 uppercase tracking-widest font-black">Upload Photo</p>
+              <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Upload Photo</p>
               <p className="text-xs text-gray-600 mt-2 italic text-center">Image functionality coming soon</p>
             </div>
 
             {/* RIGHT SIDE: DATABASE INFO */}
             <div className="w-full md:w-3/5 p-8 relative">
-              <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 text-gray-500 hover:text-black transition-colors"><X size={20}/></button>
+              <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors"><X size={20}/></button>
               
               <div className="mb-6">
                 <p className="text-sm font-mono text-ganadero-active mb-1">ID: #{selectedAnimal.id}</p>
-                <h2 className="text-3xl font-black text-black">{selectedAnimal.nombre}</h2>
+                <h2 className="text-3xl font-black text-white">{selectedAnimal.nombre}</h2>
               </div>
 
               <div className="grid grid-cols-2 gap-y-6 gap-x-4">
                 <div>
-                  <p className="text-[10px] text-gray-600 uppercase font-black">Breed</p>
-                  <p className="text-sm text-black-700 font-medium mt-1">{selectedAnimal.raza}</p>
+                  <p className="text-[10px] text-gray-500 uppercase font-black">Breed</p>
+                  <p className="text-sm text-white font-medium mt-1">{selectedAnimal.raza}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-gray-600 uppercase font-black">Weight</p>
-                  <p className="text-sm text-black-700 font-medium mt-1">{selectedAnimal.peso} kg</p>
+                  <p className="text-[10px] text-gray-500 uppercase font-black">Weight</p>
+                  <p className="text-sm text-white font-medium mt-1">{selectedAnimal.peso} kg</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-gray-600 uppercase font-black">Age</p>
-                  <p className="text-sm text-black-700 font-medium mt-1">{selectedAnimal.edad} years</p>
+                  <p className="text-[10px] text-gray-500 uppercase font-black">Age</p>
+                  <p className="text-sm text-white font-medium mt-1">{selectedAnimal.edad} years</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-gray-600 uppercase font-black">Birth Date</p>
-                  <p className="text-sm text-black-700 font-medium mt-1">{selectedAnimal.fecha_nacimiento}</p>
+                  <p className="text-[10px] text-gray-500 uppercase font-black">Birth Date</p>
+                  <p className="text-sm text-white font-medium mt-1">{selectedAnimal.fecha_nacimiento}</p>
                 </div>
-                <div className="col-span-2 bg-white p-3 rounded-xl border border-black/10">
+                <div className="col-span-2 bg-black/20 p-3 rounded-xl border border-white/5">
                   <p className="text-[10px] text-ganadero-active uppercase font-black mb-2">Lineage & Acquisition</p>
                   <div className="grid grid-cols-3 gap-2">
                     <div>
-                      <p className="text-[9px] text-gray-600 uppercase">Mother ID</p>
-                      <p className="text-xs text-black-700">{selectedAnimal.id_madre || 'N/A'}</p>
+                      <p className="text-[9px] text-gray-500 uppercase">Mother ID</p>
+                      <p className="text-xs text-gray-300">{selectedAnimal.id_madre || 'N/A'}</p>
                     </div>
                     <div>
-                      <p className="text-[9px] text-gray-600 uppercase">Father ID</p>
-                      <p className="text-xs text-black-700">{selectedAnimal.id_padre || 'N/A'}</p>
+                      <p className="text-[9px] text-gray-500 uppercase">Father ID</p>
+                      <p className="text-xs text-gray-300">{selectedAnimal.id_padre || 'N/A'}</p>
                     </div>
                     <div>
-                      <p className="text-[9px] text-gray-600 uppercase">Method</p>
-                      <p className="text-xs text-black-700">{selectedAnimal.metodo_obtencion || 'N/A'}</p>
+                      <p className="text-[9px] text-gray-500 uppercase">Method</p>
+                      <p className="text-xs text-gray-300">{selectedAnimal.metodo_obtencion || 'N/A'}</p>
                     </div>
                   </div>
                 </div>

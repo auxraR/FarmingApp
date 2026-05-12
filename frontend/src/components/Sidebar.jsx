@@ -12,17 +12,23 @@ import {
   ChevronLeft,
   ChevronRight,
   ChartSpline,
+  Boxes,
+  DoorOpen,
+  CirclePlus
 } from "lucide-react";
 import { cn } from "./ui/utils";
 
 const menuItems = [
   { name: "Dashboard", path: "/", icon: LayoutDashboard },
   { name: "Livestock", path: "/livestock", icon: Beef },
+  { name: "Add Inventory", path: "/add-livestock", icon: CirclePlus },
   { name: "Feeding", path: "/feeding", icon: Sprout },
   { name: "Health", path: "/health", icon: Stethoscope },
   { name: "Production", path: "/production", icon: TrendingUp },
   {name: "Sales", path: "/sales", icon: DollarSign},
   { name: "Finances", path: "/finances", icon: ChartSpline },
+  { name: "Inventory", path: "/inventory", icon: Boxes },
+  { name: "OutFlow", path: "/outflow", icon: DoorOpen },
   { name: "Reports", path: "/reports", icon: BarChart3 },
   { name: "Settings", path: "/settings", icon: Settings },
 ];
@@ -58,7 +64,7 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex-1 px-3 space-y-1 mt-4">
+      <nav className="flex-1 px-3 space-y-1 mt-4 overflow-y-auto">
         {menuItems.map((item) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
@@ -98,7 +104,7 @@ export default function Sidebar() {
       {/* User Profile Section */}
       <div
         className={cn(
-          "p-4 border-t border-white/5 bg-black/20",
+          "p-4 border-t border-white/5 bg-black/20 flex-shrink-0",
           isCollapsed && "flex justify-center",
         )}
       >

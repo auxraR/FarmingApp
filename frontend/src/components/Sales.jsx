@@ -24,9 +24,9 @@ const SalesPage = () => {
     try {
       // Reemplaza estas rutas con las tuyas si son diferentes
       const [clientsRes, productsRes, livestockRes] = await Promise.all([
-        apiClient.get('/clients/'), // Endpoint de clientes
-        apiClient.get('/products/'), // Endpoint de leche/insumos
-        apiClient.get('/livestock/?status=Activo') // Solo ganado vivo y en finca
+        apiClient.get('/clients/'), 
+        apiClient.get('/products/'), 
+        apiClient.get('/livestock/?estado=1') 
       ]);
       setClients(clientsRes.data);
       setProducts(productsRes.data);
@@ -118,7 +118,7 @@ const SalesPage = () => {
     }
 
     const salePayload = {
-      cliente: selectedClient,
+      client: selectedClient,
       total: cartTotal,
       detalles: cart.map(item => ({
         tipo_item: item.type,

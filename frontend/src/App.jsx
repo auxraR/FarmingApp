@@ -5,6 +5,7 @@ import FeedingPage from "./components/Feeding";
 import HealthPage from "./components/Healty";
 import ProductionPage from "./components/Production";
 import SalesPage from "./components/Sales";
+import OutflowPage from "./components/OutFlow";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
             <Route path="/health" element={<HealthPage />} />
             <Route path="/production" element={<ProductionPage />} />
             <Route path="/sales" element={<SalesPage />} />
+            <Route path="/outflow" element={<OutflowPage />} />
             <Route path="*" element={<div className="p-6">page not found</div>} />
           </Routes>
         </main>
