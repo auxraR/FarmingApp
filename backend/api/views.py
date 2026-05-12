@@ -2,6 +2,9 @@ from rest_framework import viewsets, filters, status
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import transaction
+from rest_framework.decorators import action
+from django.utils import timezone
+from datetime import timedelta
 
 from .models import (
     Livestock,
@@ -14,6 +17,7 @@ from .models import (
     SalesDetails,
     Client,
     Products,
+    Salida
 )
 from .serializers import (
     LivestockSerializer,
@@ -26,6 +30,7 @@ from .serializers import (
     SalesDetailSerializer,
     ClientSerializer,
     ProductSerializer,
+    SalidaSerializer
 )
 
 class LivestockViewSet(viewsets.ModelViewSet):
@@ -35,6 +40,8 @@ class LivestockViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     
     search_fields = ['id', 'nombre']
+
+    filterset_fields = ['estado']
 
 
 class BatchViewSet(viewsets.ModelViewSet):
@@ -107,3 +114,40 @@ class ProductsViewSet(viewsets.ModelViewSet):
 class SalesDetailsViewSet(viewsets.ModelViewSet):
     queryset = SalesDetails.objects.all().order_by('-id')
     serializer_class = SalesDetailSerializer
+
+
+class SalidaViewSet(viewsets.ModelViewSet):
+    queryset = Salida.objects.all().order_by('-fecha_salida', '-id')
+    serializer_class = SalidaSerializer
+
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        if response.status_code == 201:
+            animal_id = request.data.get('ganado')
+            animal = Livestock.objects.get(id=animal_id)
+            animal.estado = 0
+            animal.save()
+        return response
+
+    @action(detail=True, methods=['post'])
+    def revertir(self, request, pk=None):
+        salida = self.get_object()
+
+        if salida.motivo_salida == 'Venta':
+            return Response({"error": "Las ventas deben anularse desde el módulo de Sales."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        limite_tiempo = timezone.now().date() - timedelta(days=7)
+        if salida.fecha_salida < limite_tiempo:
+            return Response({"error": "Solo se pueden revertir salidas de los últimos 7 días."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            with transaction.atomic():
+                animal = salida.ganado
+                animal.estado = 1
+                animal.save()
+                
+                salida.delete()
+                
+            return Response({"status": "Salida revertida y animal reintegrado"})
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

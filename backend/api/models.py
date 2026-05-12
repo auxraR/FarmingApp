@@ -15,6 +15,7 @@ class Livestock(models.Model):
                                  db_column='ID_padre', related_name='hijos_padre')
     
     metodo_obtencion = models.CharField(max_length=50, db_column='Metodo_obtencion', null=True, blank=True)
+    estado = models.IntegerField(db_column='Estado', default=1)
 
     class Meta:
         managed = False  
@@ -130,3 +131,17 @@ class SalesDetails(models.Model):
     class Meta:
         managed = False
         db_table = 'Detalle_venta'
+
+
+
+class Salida(models.Model):
+    id = models.AutoField(primary_key=True, db_column='ID_salida')
+    ganado = models.ForeignKey(Livestock, on_delete=models.DO_NOTHING, db_column='ID_ganado')
+    fecha_salida = models.DateField(db_column='Fecha_salida', auto_now_add=True)
+    motivo_salida = models.CharField(max_length=50, db_column='Motivo_salida')
+    observaciones = models.CharField(max_length=255, db_column='Observaciones', null=True, blank=True)
+    venta = models.ForeignKey('Sales', on_delete=models.DO_NOTHING, db_column='ID_venta', null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = 'Salidas'

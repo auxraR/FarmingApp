@@ -11,6 +11,7 @@ from .models import (
     Products,
     Sales,
     SalesDetails,
+    Salida
 )
 
 class LivestockSerializer(serializers.ModelSerializer):
@@ -86,10 +87,18 @@ class SalesSerializer(serializers.ModelSerializer):
             
             if detalle.get('tipo_item') == 'Ganado' and detalle.get('ganado'):
                 animal = detalle['ganado']
-                # La columna/atributo 'estado' no existe en el modelo actual;
-                # solo actualizamos si está presente en tu DB/model.
-                if hasattr(animal, 'estado'):
-                    animal.estado = 'Vendido'
-                    animal.save()
+                animal.estado = 0 
+                animal.save()
 
         return venta
+
+class SalidaSerializer(serializers.ModelSerializer):
+    animal_nombre = serializers.ReadOnlyField(source='ganado.nombre')
+    animal_id_tag = serializers.ReadOnlyField(source='ganado.id')
+
+    class Meta:
+        model = Salida
+        fields = [
+            'id', 'ganado', 'animal_nombre', 'animal_id_tag', 
+            'fecha_salida', 'motivo_salida', 'observaciones', 'venta'
+        ]

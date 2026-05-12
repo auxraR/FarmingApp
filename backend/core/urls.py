@@ -12,6 +12,7 @@ from api.views import (
     ClientViewSet,
     ProductsViewSet,
     SalesDetailsViewSet,
+    SalidaViewSet
 )
 
 router = DefaultRouter()
@@ -25,6 +26,7 @@ router.register(r'sales', SalesViewSet, basename='sales')
 router.register(r'clients', ClientViewSet, basename='clients')
 router.register(r'products', ProductsViewSet, basename='products')
 router.register(r'sales-details', SalesDetailsViewSet, basename='sales-details')
+router.register(r'sales-outflow', SalidaViewSet, basename='sales-outflow')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
