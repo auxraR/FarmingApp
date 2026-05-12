@@ -127,11 +127,24 @@ const ProductionPage = () => {
 
   const handleSubmitMilking = async (e) => {
     e.preventDefault();
+    const litersNum = Number(form.liters_produced);
+    if (!Number.isFinite(litersNum) || litersNum < 0) {
+      Swal.fire({
+        title: 'Invalid Liters',
+        text: 'Liters produced cannot be negative.',
+        icon: 'error',
+        background: '#FFFFFF',
+        color: '#000000',
+        confirmButtonText: 'OK',
+      });
+      return;
+    }
     try {
+      const payload = { ...form, liters_produced: litersNum };
       if (editingId) {
-        await apiClient.put(`/milk-production/${editingId}/`, form);
+        await apiClient.put(`/milk-production/${editingId}/`, payload);
       } else {
-        await apiClient.post('/milk-production/', form);
+        await apiClient.post('/milk-production/', payload);
       }
       Swal.fire({ title: 'Recorded!', text: `Milking session ${editingId ? 'updated' : 'saved'} successfully.`, icon: 'success', background: '#FFFFFF', color: '#000000', timer: 1500, showConfirmButton: false });
       setShowModal(false);
@@ -275,7 +288,7 @@ const ProductionPage = () => {
               {/* Input Litros (B&W sutil con Rojo) */}
               <div>
                 <label className="block text-sm font-semibold text-[#8C92AC] mb-1.5">Liters Produced *</label>
-                <input type="number" step="0.01" name="liters_produced" value={form.liters_produced} onChange={handleInputChange} className="w-full p-3 py-3.5 bg-[#F4F6F8] rounded-xl text-black border border-[#E0E0E0] text-lg font-bold focus:ring-1 focus:ring-[#11131F]" placeholder="0.00" required />
+                <input type="number" step="0.01" min="0" name="liters_produced" value={form.liters_produced} onChange={handleInputChange} className="w-full p-3 py-3.5 bg-[#F4F6F8] rounded-xl text-black border border-[#E0E0E0] text-lg font-bold focus:ring-1 focus:ring-[#11131F]" placeholder="0.00" required />
               </div>
               {/* Input Fecha (automática sutil) */}
               <div>

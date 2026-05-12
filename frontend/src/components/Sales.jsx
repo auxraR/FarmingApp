@@ -36,10 +36,17 @@ const SalesPage = () => {
     }
   };
 
-  // --- LÓGICA DEL CARRITO ---
+
   const handleAddToCart = () => {
-    if (!selectedItem || !quantity || quantity <= 0) {
+    const effectiveQuantity = itemType === 'Ganado' ? 1 : parseFloat(quantity);
+    if (!selectedItem || !effectiveQuantity || effectiveQuantity <= 0) {
       Swal.fire({ icon: 'warning', title: 'Oops...', text: 'Please select an item and a valid quantity.' });
+      return;
+    }
+
+    const overrideNum = priceOverride === '' ? null : Number(priceOverride);
+    if (overrideNum !== null && (!Number.isFinite(overrideNum) || overrideNum < 0)) {
+      Swal.fire({ icon: 'error', title: 'Invalid Price', text: 'Unit price cannot be negative.' });
       return;
     }
 
@@ -67,7 +74,12 @@ const SalesPage = () => {
       };
     }
 
-    const subtotal = finalPrice * parseFloat(quantity);
+    if (!Number.isFinite(finalPrice) || finalPrice < 0) {
+      Swal.fire({ icon: 'error', title: 'Invalid Price', text: 'Unit price cannot be negative.' });
+      return;
+    }
+
+    const subtotal = finalPrice * effectiveQuantity;
 
     const newItem = {
       cartId: Date.now(), 
@@ -76,7 +88,7 @@ const SalesPage = () => {
       name: itemDetails.name,
       unit: itemDetails.unit,
       price: finalPrice,
-      quantity: parseFloat(quantity),
+      quantity: effectiveQuantity,
       subtotal: subtotal
     };
 
@@ -94,7 +106,7 @@ const SalesPage = () => {
 
   const cartTotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
 
-  // --- PROCESAR LA VENTA ---
+
   const handleCheckout = async () => {
     if (!selectedClient) {
       Swal.fire({ icon: 'error', title: 'Missing Client', text: 'Please select a client for this sale.' });
@@ -118,7 +130,7 @@ const SalesPage = () => {
     };
 
     try {
-      await apiClient.post('/ventas/', salePayload);
+      await apiClient.post('/sales/', salePayload);
       Swal.fire({ title: 'Sale Completed!', text: 'The transaction has been recorded.', icon: 'success', timer: 2000, showConfirmButton: false });
       setCart([]);
       setSelectedClient('');
@@ -129,7 +141,7 @@ const SalesPage = () => {
   };
 
   return (
-    <div className="flex-1 bg-[#F4F6F8] min-h-screen p-8 mt-[70px]">
+    <div className="flex-1 bg-[#F4F6F8] min-h-screen p-8 mt-[0px]">
       <div className="flex items-center justify-between mb-8 pb-4 border-b border-[#E0E0E0]">
         <h1 className="text-3xl font-bold text-[#11131F] flex items-center gap-3">
           <ShoppingCart className="text-[#11131F]" size={28} />
@@ -139,10 +151,8 @@ const SalesPage = () => {
 
       <div className="flex flex-col lg:flex-row gap-8">
         
-        {/* LADO IZQUIERDO: FORMULARIO DE INGRESO (Panel de Control) */}
         <div className="lg:w-2/3 space-y-6">
           
-          {/* Tarjeta: Seleccionar Cliente */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#EBEBEB]">
             <h2 className="text-lg font-bold text-black flex items-center gap-2 mb-4">
               <User size={20} className="text-[#8C92AC]" /> 1. Select Client
@@ -172,7 +182,7 @@ const SalesPage = () => {
                 <span className="text-sm font-semibold text-black">Product (Milk, Cheese)</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="itemType" checked={itemType === 'Ganado'} onChange={() => {setItemType('Ganado'); setSelectedItem('');}} className="accent-black w-4 h-4" />
+                <input type="radio" name="itemType" checked={itemType === 'Ganado'} onChange={() => {setItemType('Ganado'); setSelectedItem(''); setQuantity('1');}} className="accent-black w-4 h-4" />
                 <span className="text-sm font-semibold text-black">Livestock (Animal)</span>
               </label>
             </div>
@@ -191,12 +201,21 @@ const SalesPage = () => {
               
               <div>
                 <label className="block text-xs font-semibold text-[#8C92AC] mb-1 uppercase tracking-wider">Quantity</label>
-                <input type="number" step="0.01" value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder={itemType === 'Producto' ? "Liters/Kg" : "1"} className="w-full p-3 bg-[#F4F6F8] rounded-xl text-black border border-[#E0E0E0]" />
+                <input
+                  type="number"
+                  step={itemType === 'Producto' ? '0.01' : '1'}
+                  min={itemType === 'Producto' ? undefined : 1}
+                  value={itemType === 'Ganado' ? '1' : quantity}
+                  disabled={itemType === 'Ganado'}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  placeholder={itemType === 'Producto' ? "Liters/Kg" : "1"}
+                  className="w-full p-3 bg-[#F4F6F8] rounded-xl text-black border border-[#E0E0E0] disabled:opacity-60 disabled:cursor-not-allowed"
+                />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-[#8C92AC] mb-1 uppercase tracking-wider">Unit Price (C$)</label>
-                <input type="number" step="0.01" value={priceOverride} onChange={(e) => setPriceOverride(e.target.value)} placeholder="Leave blank for default" className="w-full p-3 bg-[#F4F6F8] rounded-xl text-black border border-[#E0E0E0]" />
+                <input type="number" step="0.01" min="0" value={priceOverride} onChange={(e) => setPriceOverride(e.target.value)} placeholder="Leave blank for default" className="w-full p-3 bg-[#F4F6F8] rounded-xl text-black border border-[#E0E0E0]" />
               </div>
             </div>
 
@@ -206,7 +225,6 @@ const SalesPage = () => {
           </div>
         </div>
 
-        {/* LADO DERECHO: EL RECIBO / FACTURA */}
         <div className="lg:w-1/3">
           <div className="bg-white p-6 rounded-3xl shadow-lg border-2 border-black flex flex-col h-full sticky top-24">
             <h2 className="text-2xl font-extrabold text-black flex items-center gap-2 mb-6 pb-4 border-b-2 border-dashed border-[#E0E0E0]">
@@ -235,7 +253,6 @@ const SalesPage = () => {
               )}
             </div>
 
-            {/* Totales y Botón de Pago */}
             <div className="mt-auto pt-4 border-t-2 border-dashed border-[#E0E0E0]">
               <div className="flex justify-between items-center mb-6">
                 <span className="text-lg font-bold text-[#8C92AC]">TOTAL</span>

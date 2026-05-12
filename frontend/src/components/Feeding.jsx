@@ -109,11 +109,23 @@ const handleDelete = async (e, id) => {
 
 const handleSave = async (e) => {
   e.preventDefault();
+  const qtyNum = Number(formData.quantity_kg);
+  if (!Number.isFinite(qtyNum) || qtyNum < 0) {
+    Swal.fire({
+      title: 'Invalid Quantity',
+      text: 'Quantity (kg) cannot be negative.',
+      icon: 'error',
+      confirmButtonText: 'OK',
+    });
+    return;
+  }
+
   try {
+    const payload = { ...formData, quantity_kg: qtyNum };
     if (selectedLog && isEditing) {
-      await apiClient.put(`/feeding/${selectedLog.id}/`, formData);
+      await apiClient.put(`/feeding/${selectedLog.id}/`, payload);
     } else {
-      await apiClient.post('/feeding/', formData);
+      await apiClient.post('/feeding/', payload);
     }
 
     setIsModalOpen(false);
@@ -230,7 +242,7 @@ const handleSave = async (e) => {
                     </div>
                     <div>
                       <label className="text-[10px] text-gray-600 font-black uppercase">Qty (kg)</label>
-                      <input required type="number" step="0.1" className="w-full bg-white border border-black/10 rounded-xl p-3 mt-1 outline-none focus:border-ganadero-active"
+                      <input required type="number" step="0.1" min="0" className="w-full bg-white border border-black/10 rounded-xl p-3 mt-1 outline-none focus:border-ganadero-active"
                         value={formData.quantity_kg} onChange={e => setFormData({...formData, quantity_kg: e.target.value})} />
                     </div>
                   </div>

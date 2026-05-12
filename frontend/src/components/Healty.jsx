@@ -69,8 +69,20 @@ export default function HealthPage() {
 
   const handleWeightSubmit = async (e) => {
     e.preventDefault();
+    const pesoNum = Number(weightForm.peso);
+    if (!Number.isFinite(pesoNum) || pesoNum < 0) {
+      Swal.fire({
+        title: 'Invalid Weight',
+        text: 'Weight cannot be negative.',
+        icon: 'error',
+        background: '#1a1c26',
+        color: '#ffffff',
+        confirmButtonText: 'OK',
+      });
+      return;
+    }
     try {
-      const payload = { animal: selectedAnimal.id, peso: weightForm.peso, fecha: weightForm.fecha };
+      const payload = { animal: selectedAnimal.id, peso: pesoNum, fecha: weightForm.fecha };
       
       await apiClient.post('/weight-control/', payload); 
       
@@ -208,7 +220,7 @@ export default function HealthPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-[10px] text-black-500 uppercase font-black">Weight (kg)</label>
-                    <input required type="number" step="0.01" 
+                    <input required type="number" step="0.01" min="0"
                         className="w-full bg-black/30 border border-gray/10 rounded-xl p-3 mt-1 outline-none focus:border-blue-400"
                         value={weightForm.peso} 
                         onChange={(e) => setWeightForm({...weightForm, peso: e.target.value})} 

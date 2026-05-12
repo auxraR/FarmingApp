@@ -46,7 +46,7 @@ export default function Sidebar() {
         )}
       >
         {!isCollapsed && (
-          <h1 className="text-xl font-bold tracking-tight">BaltoFarm</h1>
+          <h1 className="text-xl font-bold tracking-tight">CHOCOYO </h1>
         )}
 
         <button
