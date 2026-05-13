@@ -1,0 +1,58 @@
+
+//TRigger that update de weigth after insert in table "Control_pesaje"
+CREATE TRIGGER trg_after_insert_pesaje
+ON Control_pesaje
+AFTER INSERT
+AS
+BEGIN
+    -- Esto evita que SQL Server mande mensajes extraños a Django
+    SET NOCOUNT ON;
+
+    -- Actualizamos la tabla Ganado
+    UPDATE g
+    SET g.Peso = i.Peso
+    FROM Ganado g
+    -- Unimos con la tabla "inserted" (que es el equivalente al NEW)
+    INNER JOIN inserted i ON g.ID_ganado = i.ID_ganado;
+END;
+GO
+
+//Consult that create the table inventory
+CREATE TABLE Movimientos_Inventario (
+    ID_movimiento INT IDENTITY(1,1) PRIMARY KEY,
+    ID_producto INT NOT NULL,
+    Tipo_movimiento VARCHAR(20) NOT NULL, 
+    Cantidad DECIMAL(10, 2) NOT NULL,
+    Costo_Unitario DECIMAL(10, 2) NULL, 
+    Motivo VARCHAR(100) NOT NULL, 
+    Observaciones VARCHAR(255) NULL,
+    
+    CONSTRAINT FK_Movimiento_Producto FOREIGN KEY (ID_producto) 
+    REFERENCES Productos(ID_producto)
+);
+
+//Trigger that update the information of the other tables
+CREATE TRIGGER trg_actualizar_stock
+ON Movimientos_Inventario
+AFTER INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE p
+    SET p.Stock = p.Stock + i.Cantidad
+    FROM Productos p
+    INNER JOIN inserted i ON p.ID_producto = i.ID_producto
+    WHERE i.Tipo_movimiento = 'Entrada';
+    UPDATE p
+    SET p.Stock = p.Stock - i.Cantidad
+    FROM Productos p
+    INNER JOIN inserted i ON p.ID_producto = i.ID_producto
+    WHERE i.Tipo_movimiento = 'Salida';
+END;
+GO
+
+//the table inventory is incomploted, add this line
+ALTER TABLE Movimientos_Inventario 
+ADD Fecha_movimiento DATETIME DEFAULT GETDATE();
+GO

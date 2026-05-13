@@ -99,7 +99,7 @@ class Client(models.Model):
 class Products(models.Model):
     id = models.AutoField(primary_key=True, db_column='ID_producto')
     nombre = models.CharField(max_length=100, db_column='Nombre')
-    unidad_medida = models.CharField(max_length=50, db_column='Unidad_medida') # Ej: Litros, Kg
+    unidad_medida = models.CharField(max_length=50, db_column='Unidad_medida') 
     precio_actual = models.DecimalField(max_digits=10, decimal_places=2, db_column='Precio_actual')
     stock = models.DecimalField(max_digits=10, decimal_places=2, db_column='Stock')
 
@@ -145,3 +145,18 @@ class Salida(models.Model):
     class Meta:
         managed = False
         db_table = 'Salidas'
+
+
+class InventoryMovement(models.Model):
+    id = models.AutoField(primary_key=True, db_column='ID_movimiento')
+    producto = models.ForeignKey('Products', on_delete=models.CASCADE, db_column='ID_producto')
+    tipo_movimiento = models.CharField(max_length=20, db_column='Tipo_movimiento') # 'Entrada' o 'Salida'
+    cantidad = models.DecimalField(max_digits=10, decimal_places=2, db_column='Cantidad')
+    costo_unitario = models.DecimalField(max_digits=10, decimal_places=2, db_column='Costo_Unitario', null=True, blank=True)
+    fecha_movimiento = models.DateTimeField(auto_now_add=True, db_column='Fecha_movimiento')
+    motivo = models.CharField(max_length=100, db_column='Motivo')
+    observaciones = models.CharField(max_length=255, db_column='Observaciones', null=True, blank=True)
+
+    class Meta:
+        managed = False 
+        db_table = 'Movimientos_Inventario'

@@ -11,7 +11,8 @@ from .models import (
     Products,
     Sales,
     SalesDetails,
-    Salida
+    Salida,
+    InventoryMovement
 )
 
 class LivestockSerializer(serializers.ModelSerializer):
@@ -102,3 +103,11 @@ class SalidaSerializer(serializers.ModelSerializer):
             'id', 'ganado', 'animal_nombre', 'animal_id_tag', 
             'fecha_salida', 'motivo_salida', 'observaciones', 'venta'
         ]
+
+class InventoryMovementSerializer(serializers.ModelSerializer):
+    producto_nombre = serializers.ReadOnlyField(source='producto.nombre')
+    unidad_medida = serializers.ReadOnlyField(source='producto.unidad_medida')
+
+    class Meta:
+        model = InventoryMovement
+        fields = '__all__'

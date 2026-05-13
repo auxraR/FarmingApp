@@ -17,7 +17,8 @@ from .models import (
     SalesDetails,
     Client,
     Products,
-    Salida
+    Salida,
+    InventoryMovement
 )
 from .serializers import (
     LivestockSerializer,
@@ -30,7 +31,8 @@ from .serializers import (
     SalesDetailSerializer,
     ClientSerializer,
     ProductSerializer,
-    SalidaSerializer
+    SalidaSerializer,
+    InventoryMovementSerializer
 )
 
 class LivestockViewSet(viewsets.ModelViewSet):
@@ -84,6 +86,7 @@ class MilkProductionViewSet(viewsets.ModelViewSet):
         if animal_id is not None:
             queryset = queryset.filter(animal_id=animal_id)
         return queryset
+    
 
 class SalesViewSet(viewsets.ModelViewSet):
     queryset = Sales.objects.all().order_by('-sale_date', '-id')
@@ -151,3 +154,10 @@ class SalidaViewSet(viewsets.ModelViewSet):
             return Response({"status": "Salida revertida y animal reintegrado"})
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class InventoryMovementViewSet(viewsets.ModelViewSet):
+    queryset = InventoryMovement.objects.all().order_by('-fecha_movimiento')
+    serializer_class = InventoryMovementSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['tipo_movimiento', 'producto', 'motivo']

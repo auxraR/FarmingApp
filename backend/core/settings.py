@@ -125,10 +125,13 @@ DATABASES = {
     'default': {
         'ENGINE': 'mssql',
         'NAME': 'BaltodanoFarm',
-        'HOST': 'localhost', 
+        'USER': 'SA',  
+        'PASSWORD': 'Mirai2028.', 
+        'HOST': '127.0.0.1',
+        'PORT': '1433',
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',
-            'extra_params': 'Trusted_Connection=yes;',
+            'extra_params': 'TrustServerCertificate=yes;Trusted_Connection=no;',
         },
     }
 }
