@@ -11,6 +11,7 @@ export default function FeedingPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedLog, setSelectedLog] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [feedProducts, setFeedProducts] = useState([]);
 
   const [formData, setFormData] = useState({
     batch: '', food_type: '', quantity_kg: '', schedule: 'Morning', observations: ''
@@ -18,12 +19,15 @@ export default function FeedingPage() {
 
   const fetchData = async () => {
     try {
-      const [logRes, batchRes] = await Promise.all([
+      const [logRes, batchRes,productsRes] = await Promise.all([
         apiClient.get('/feeding/'),
-        apiClient.get('/batches/')
+        apiClient.get('/batches/'),
+        apiClient.get('/products/')
       ]);
       setLogs(Array.isArray(logRes.data) ? logRes.data : logRes.data.results);
       setBatches(batchRes.data);
+      const alimentos = productsRes.data.filter(p => p.categoria === 'Alimento');
+      setFeedProducts(alimentos);
     } catch (e) { 
       console.error(e); 
     } finally { 
@@ -36,7 +40,6 @@ export default function FeedingPage() {
 
   const handleAddNew = () => {
     setSelectedLog(null); 
-    setFormData({ batch: '', food_type: '', quantity_kg: '', schedule: 'Morning', observations: '' });
     setIsEditing(true); 
     setIsModalOpen(true);
   };
@@ -108,48 +111,59 @@ const handleDelete = async (e, id) => {
 };
 
 const handleSave = async (e) => {
-  e.preventDefault();
-  const qtyNum = Number(formData.quantity_kg);
-  if (!Number.isFinite(qtyNum) || qtyNum < 0) {
-    Swal.fire({
-      title: 'Invalid Quantity',
-      text: 'Quantity (kg) cannot be negative.',
-      icon: 'error',
-      confirmButtonText: 'OK',
-    });
-    return;
-  }
-
-  try {
-    const payload = { ...formData, quantity_kg: qtyNum };
-    if (selectedLog && isEditing) {
-      await apiClient.put(`/feeding/${selectedLog.id}/`, payload);
-    } else {
-      await apiClient.post('/feeding/', payload);
+    e.preventDefault();
+    const qtyNum = Number(formData.quantity_kg);
+    const productoSeleccionado = feedProducts.find(p => p.id === Number(formData.producto));
+    if (!Number.isFinite(qtyNum) || qtyNum < 0 || productoSeleccionado && qtyNum > productoSeleccionado.stock) {
+      Swal.fire({
+        title: 'Invalid Quantity',
+        text: 'Quantity (kg) cannot be negative or there a not enough food ',
+        icon: 'error',
+        confirmButtonText: 'OK',
+      });
+      return;
     }
 
-    setIsModalOpen(false);
-    
-    Swal.fire({
-      title: 'Success',
-      text: 'The information was saved successfully.',
-      icon: 'success',
-      timer: 2000, 
-      showConfirmButton: false
-    });
+    try {
 
-    fetchData();
-  } catch (err) {
-    console.error("Error saving data:", err);
-    
-    Swal.fire({
-      title: 'Error',
-      text: 'Could not connect to the SQL server.',
-      icon: 'error',
-      confirmButtonText: 'Understood'
-    });
-  }
-};
+      const productoSeleccionado = feedProducts.find(p => p.id === Number(formData.producto));
+      
+      const payload = { 
+        ...formData, 
+        quantity_kg: qtyNum,
+        food_type: productoSeleccionado ? productoSeleccionado.nombre : 'Concentrado' ,
+        observations: formData.observations.trim() === "" ? "Sin observaciones" : formData.observations
+      };
+
+      if (selectedLog && isEditing) {
+        await apiClient.put(`/feeding/${selectedLog.id}/`, payload);
+      } else {
+        await apiClient.post('/feeding/', payload);
+      }
+
+      setIsModalOpen(false);
+      
+      Swal.fire({
+        title: 'Success',
+        text: 'The information was saved successfully.',
+        icon: 'success',
+        timer: 2000, 
+        showConfirmButton: false
+      });
+
+      fetchData();
+    } catch (err) {
+      console.error("Error saving data:", err);
+      console.log("Error detallado de Django:", err.response?.data); 
+      
+      Swal.fire({
+        title: 'Error',
+        text: 'Could not connect to the SQL server.',
+        icon: 'error',
+        confirmButtonText: 'Understood'
+      });
+    }
+  };
 
   if (loading) return <div className="p-8 text-ganadero-active animate-pulse">Loading data...</div>;
 
@@ -236,9 +250,21 @@ const handleSave = async (e) => {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[10px] text-gray-600 font-black uppercase">Food Type</label>
-                      <input required className="w-full bg-white border border-black/10 rounded-xl p-3 mt-1 outline-none focus:border-ganadero-active"
-                        value={formData.food_type} onChange={e => setFormData({...formData, food_type: e.target.value})} />
+                      <label className="block text-xs font-bold text-[#8C92AC] mb-2 uppercase">Food Product</label>
+                      <select
+                        name="producto"
+                        value={formData.producto || ''}
+                        onChange={e => setFormData({...formData, producto: e.target.value})}
+                        className="w-full bg-white border border-black/10 rounded-xl p-3 mt-1 outline-none focus:border-ganadero-active"
+                        required
+                      >
+                        <option value="">-- Select Feed --</option>
+                        {feedProducts.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.nombre} (Stock: {p.stock} {p.unidad_medida})
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <label className="text-[10px] text-gray-600 font-black uppercase">Qty (kg)</label>

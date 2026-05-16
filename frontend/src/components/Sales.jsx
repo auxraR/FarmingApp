@@ -22,20 +22,19 @@ const SalesPage = () => {
 
   const fetchInitialData = async () => {
     try {
-      // Reemplaza estas rutas con las tuyas si son diferentes
       const [clientsRes, productsRes, livestockRes] = await Promise.all([
         apiClient.get('/clients/'), 
         apiClient.get('/products/'), 
         apiClient.get('/livestock/?estado=1') 
       ]);
       setClients(clientsRes.data);
-      setProducts(productsRes.data);
+      const ProductsToSend = productsRes.data.filter(p => p.categoria === 'Venta');
+      setProducts(ProductsToSend); 
       setLivestock(livestockRes.data);
     } catch (err) {
       console.error("Error cargando datos para ventas", err);
     }
   };
-
 
   const handleAddToCart = () => {
     const effectiveQuantity = itemType === 'Ganado' ? 1 : parseFloat(quantity);
@@ -55,6 +54,25 @@ const SalesPage = () => {
 
     if (itemType === 'Producto') {
       const prod = products.find(p => p.id.toString() === selectedItem);
+      
+      const cantidadEnCarrito = cart
+        .filter(item => item.type === 'Producto' && item.itemId === prod.id)
+        .reduce((sum, item) => sum + item.quantity, 0);
+
+      const cantidadTotalA_Vender = effectiveQuantity + cantidadEnCarrito;
+      
+      if (prod && cantidadTotalA_Vender > prod.stock) {
+        Swal.fire({
+          title: 'Stock Exceeded!',
+          text: cantidadEnCarrito > 0 
+            ? `You already have ${cantidadEnCarrito} in the cart. Adding ${effectiveQuantity} more exceeds the ${prod.stock} ${prod.unidad_medida} available.`
+            : `Cannot sell ${effectiveQuantity}. Only ${prod.stock} ${prod.unidad_medida} available.`,
+          icon: 'error',
+          confirmButtonColor: '#000000'
+        });
+        return; 
+      }
+
       if (!finalPrice) finalPrice = parseFloat(prod.precio_actual);
       itemDetails = {
         id: prod.id,
@@ -70,7 +88,7 @@ const SalesPage = () => {
       itemDetails = {
         id: animal.id,
         name: animal.nombre || `Animal #${animal.id} (${animal.raza})`,
-        unit: 'Head/Kg'
+        unit: 'Head'
       };
     }
 
@@ -94,7 +112,6 @@ const SalesPage = () => {
 
     setCart([...cart, newItem]);
     
-  
     setSelectedItem('');
     setQuantity('');
     setPriceOverride('');
@@ -105,7 +122,6 @@ const SalesPage = () => {
   };
 
   const cartTotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
-
 
   const handleCheckout = async () => {
     if (!selectedClient) {
@@ -134,6 +150,7 @@ const SalesPage = () => {
       Swal.fire({ title: 'Sale Completed!', text: 'The transaction has been recorded.', icon: 'success', timer: 2000, showConfirmButton: false });
       setCart([]);
       setSelectedClient('');
+      fetchInitialData(); 
     } catch (err) {
       console.error(err);
       Swal.fire({ icon: 'error', title: 'Error', text: 'Could not complete the sale.' });
@@ -169,13 +186,11 @@ const SalesPage = () => {
             </select>
           </div>
 
-          {/* Tarjeta: Agregar Item */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#EBEBEB]">
             <h2 className="text-lg font-bold text-black flex items-center gap-2 mb-4">
               <Package size={20} className="text-[#8C92AC]" /> 2. Add Item to Cart
             </h2>
             
-            {/* Toggle Tipo de Item */}
             <div className="flex gap-4 mb-6">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="radio" name="itemType" checked={itemType === 'Producto'} onChange={() => {setItemType('Producto'); setSelectedItem('');}} className="accent-black w-4 h-4" />
@@ -231,7 +246,6 @@ const SalesPage = () => {
               <Receipt size={24} /> Current Order
             </h2>
 
-            {/* Lista de Items */}
             <div className="flex-1 overflow-y-auto mb-6 space-y-4">
               {cart.length === 0 ? (
                 <p className="text-center text-[#8C92AC] mt-10 italic">The cart is empty.</p>

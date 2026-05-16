@@ -90,9 +90,24 @@ class SalesSerializer(serializers.ModelSerializer):
                 animal = detalle['ganado']
                 animal.estado = 0 
                 animal.save()
+                
+            if detalle.get('tipo_item') == 'Producto' and detalle.get('producto'):
+                cantidad_vendida = detalle.get('cantidad', 1)
+                subtotal = detalle.get('subtotal', 0)
+            
+                precio_unitario = subtotal / cantidad_vendida if cantidad_vendida > 0 else 0
+                
+                InventoryMovement.objects.create(
+                    producto=detalle['producto'],
+                    tipo_movimiento='Salida',
+                    cantidad=cantidad_vendida,
+                    costo_unitario=precio_unitario,
+                    motivo='Venta',
+                    observaciones=f'Venta Factura #{venta.id}'
+                )
 
         return venta
-
+    
 class SalidaSerializer(serializers.ModelSerializer):
     animal_nombre = serializers.ReadOnlyField(source='ganado.nombre')
     animal_id_tag = serializers.ReadOnlyField(source='ganado.id')

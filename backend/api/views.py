@@ -54,6 +54,19 @@ class FeedingLogViewSet(viewsets.ModelViewSet):
     queryset = FeedingLog.objects.all().order_by('-date', '-id')
     serializer_class = FeedingLogSerializer
 
+    def perform_create(self, serializer):
+        registro = serializer.save()
+        
+        if hasattr(registro, 'producto') and registro.producto:
+            InventoryMovement.objects.create(
+                producto=registro.producto,
+                tipo_movimiento='Salida',
+                cantidad=registro.quantity_kg, 
+                motivo='Alimentación',
+                observaciones=f'Ración registrada el {registro.date}'
+            )
+
+
 class HealthActionViewSet(viewsets.ModelViewSet):
     serializer_class = HealthActionSerializer
 
@@ -64,12 +77,34 @@ class HealthActionViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(animal_id=animal_id)
         return queryset
     
+    def perform_create(self, serializer):
+        registro = serializer.save()
+        
+        if registro.tipo_evento:
+            try:
+                producto_usado = Products.objects.get(id=registro.tipo_evento)
+                
+                import re
+                cantidad_limpia = re.findall(r"[-+]?\d*\.\d+|\d+", str(registro.dosis))
+                cantidad_num = float(cantidad_limpia[0]) if cantidad_limpia else 0
+                
+                if cantidad_num > 0:
+                    InventoryMovement.objects.create(
+                        producto=producto_usado, 
+                        tipo_movimiento='Salida',
+                        cantidad=cantidad_num,
+                        motivo='Aplicación Sanitaria',
+                        observaciones=f'Aplicado a animal ID #{registro.animal.id}'
+                    )
+            except Products.DoesNotExist:
+                print(f"No se encontró un producto con el ID {registro.tipo_evento}")
+            except Exception as e:
+                print(f"Error al descontar inventario de salud: {e}")
 
 class WeightControlViewSet(viewsets.ModelViewSet):
     serializer_class = WeightControlSerializer
 
     def get_queryset(self):
-        # Ordenamos del más reciente al más antiguo
         queryset = WeightControl.objects.all().order_by('-fecha')
         animal_id = self.request.query_params.get('animal_id', None)
         if animal_id is not None:
@@ -86,6 +121,20 @@ class MilkProductionViewSet(viewsets.ModelViewSet):
         if animal_id is not None:
             queryset = queryset.filter(animal_id=animal_id)
         return queryset
+
+    def perform_create(self, serializer):
+        registro = serializer.save()
+        
+        producto_leche = Products.objects.filter(nombre__icontains='Leche').first()
+        
+        if producto_leche:
+            InventoryMovement.objects.create(
+                producto=producto_leche,
+                tipo_movimiento='Entrada',
+                cantidad=registro.liters_produced,
+                motivo='Producción Diaria',
+                observaciones=f'Ordeño registrado el {registro.date}'
+            )
     
 
 class SalesViewSet(viewsets.ModelViewSet):

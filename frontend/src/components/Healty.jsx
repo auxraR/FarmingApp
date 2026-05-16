@@ -15,14 +15,16 @@ export default function HealthPage() {
   // Form States
   const [weightForm, setWeightForm] = useState({ peso: '', fecha: new Date().toISOString().split('T')[0] });
   const [healthForm, setHealthForm] = useState({ 
-    tipo_evento: 'Vacuna Ántrax', 
+    tipo_evento: '', 
     dosis: '', 
     fecha: new Date().toISOString().split('T')[0],
     observaciones: '' 
   });
 
+  const [HealtProducts, setHealtProducts] = useState([]);
+
   // --- CALENDAR STATES ---
-  const [currentDate, setCurrentDate] = useState(new Date()); // Inicia en el mes actual
+  const [currentDate, setCurrentDate] = useState(new Date()); 
 
   // Handle Search
   useEffect(() => {
@@ -69,6 +71,21 @@ export default function HealthPage() {
     }
   };
 
+  const fetchData = async () =>{
+    try {
+      const [MedicineRes] = await Promise.all([
+        apiClient.get('/products/')
+      ])
+      const medicine = MedicineRes.data.filter(p => p.categoria === 'Salud');
+      setHealtProducts(medicine);
+    }
+     catch (e) { 
+      console.error(e); 
+     }
+    }
+    useEffect(() => {
+    fetchData();
+  }, []);
   const handleWeightSubmit = async (e) => {
     e.preventDefault();
     const pesoNum = Number(weightForm.peso);
@@ -99,13 +116,24 @@ export default function HealthPage() {
 
   const handleHealthActionSubmit = async (e) => {
     e.preventDefault();
+    const productoSeleccionado = HealtProducts.find(p => p.id === Number(healthForm.tipo_evento));
+    const dosisLimpia = parseFloat(healthForm.dosis) || 0; 
+    if (productoSeleccionado && dosisLimpia > productoSeleccionado.stock) {
+      Swal.fire({
+        title: 'Not enough stock!',
+        text: `You only have ${productoSeleccionado.stock} ${productoSeleccionado.unidad_medida} of ${productoSeleccionado.nombre} available.`,
+        icon: 'warning',
+        background: '#ffffff', color: '#000000',
+        confirmButtonColor: '#d33'
+      });
+      return;
+      } 
     try {
       const payload = { animal: selectedAnimal.id, ...healthForm };
-      // OJO: Asegúrate de que tu backend esté listo para recibir esto
-      await apiClient.post('/health-actions/', payload); 
-      
+      await apiClient.post('/health-actions/', payload);
+  
       setVaccineHistory(prev => [{ id: Date.now(), ...payload }, ...prev]);
-      setHealthForm({ tipo_evento: 'Vacuna Ántrax', dosis: '', fecha: new Date().toISOString().split('T')[0], observaciones: '' });
+      setHealthForm({ tipo_evento: '', dosis: '', fecha: new Date().toISOString().split('T')[0], observaciones: '' });
       
       Swal.fire({ title: 'Recorded!', text: 'Action saved to database.', icon: 'success', background: '#ffffff', color: '#000000', timer: 1500, showConfirmButton: false });
     } catch (err) {
@@ -113,7 +141,6 @@ export default function HealthPage() {
     }
   };
 
-  // --- DYNAMIC CALENDAR LOGIC ---
   const changeMonth = (offset) => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1));
   };
@@ -306,10 +333,12 @@ export default function HealthPage() {
                     <label className="text-[10px] text-black/60 uppercase font-black">Event Type</label>
                     <select className="w-full bg-white/50 border border-white/50 rounded-xl p-2.5 mt-1 outline-none focus:ring-2 focus:ring-red-400"
                       value={healthForm.tipo_evento} onChange={e => setHealthForm({...healthForm, tipo_evento: e.target.value})}>
-                      <option value="Vacuna Ántrax">Vacuna Ántrax</option>
-                      <option value="Vacuna Pierna Negra">Vacuna Pierna Negra</option>
-                      <option value="Desparasitación">Desparasitación</option>
-                      <option value="Complejo B">Complejo B</option>
+                     <option value="">-- Select vaccine --</option>
+                        {HealtProducts.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.nombre} (Stock: {p.stock} {p.unidad_medida})
+                          </option>
+                        ))}
                     </select>
                   </div>
                   <div>

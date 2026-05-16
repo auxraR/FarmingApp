@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../api/client';
-import { Boxes, TrendingUp, TrendingDown, Package, Plus, Trash2 } from 'lucide-react';
+import { Boxes, TrendingUp, TrendingDown, Package, Plus, Trash2, Edit2 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 const InventoryPage = () => {
@@ -11,6 +11,10 @@ const InventoryPage = () => {
   // Estados para modales
   const [showProductModal, setShowProductModal] = useState(false);
   const [showMovementModal, setShowMovementModal] = useState(false);
+
+  // Estados para saber si estamos editando
+  const [isEditingProduct, setIsEditingProduct] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState(null);
 
   // Estados de formularios
   const [productForm, setProductForm] = useState({ nombre: '', categoria: 'Alimento', unidad_medida: 'Kg', precio_actual: 0 });
@@ -35,21 +39,69 @@ const InventoryPage = () => {
     }
   };
 
-  // 1. Crear Nuevo Producto
-  const handleCreateProduct = async (e) => {
+  // --- LÓGICA DE PRODUCTOS (CREAR Y EDITAR) ---
+  const handleOpenNewProduct = () => {
+    setIsEditingProduct(false);
+    setSelectedProductId(null);
+    setProductForm({ nombre: '', categoria: 'Alimento', unidad_medida: 'Kg', precio_actual: 0 });
+    setShowProductModal(true);
+  };
+
+  const handleEditProductClick = (product) => {
+    setIsEditingProduct(true);
+    setSelectedProductId(product.id);
+    setProductForm({ 
+      nombre: product.nombre, 
+      categoria: product.categoria, 
+      unidad_medida: product.unidad_medida, 
+      precio_actual: product.precio_actual 
+    });
+    setShowProductModal(true);
+  };
+
+  const handleSaveProduct = async (e) => {
     e.preventDefault();
     try {
-      await apiClient.post('/products/', { ...productForm, stock: 0 }); // Nace con stock 0
-      Swal.fire({ title: 'Success', text: 'Product created successfully', icon: 'success', timer: 1500, showConfirmButton: false });
+      if (isEditingProduct) {
+        await apiClient.put(`/products/${selectedProductId}/`, productForm);
+        Swal.fire({ title: 'Success', text: 'Product updated successfully', icon: 'success', timer: 1500, showConfirmButton: false });
+      } else {
+        await apiClient.post('/products/', { ...productForm, stock: 0 }); 
+        Swal.fire({ title: 'Success', text: 'Product created successfully', icon: 'success', timer: 1500, showConfirmButton: false });
+      }
       setShowProductModal(false);
       setProductForm({ nombre: '', categoria: 'Alimento', unidad_medida: 'Kg', precio_actual: 0 });
+      setIsEditingProduct(false);
+      setSelectedProductId(null);
       fetchData();
     } catch (err) {
-      Swal.fire('Error', 'Could not create product', 'error');
+      Swal.fire('Error', 'Could not save product', 'error');
     }
   };
 
-  // 2. Crear Movimiento / Restock
+  const handleDeleteProduct = async (id) => {
+    const result = await Swal.fire({
+      title: 'Delete Product?',
+      text: "This will remove the product from the catalog. You cannot undo this.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#000000',
+      confirmButtonText: 'Yes, delete it'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await apiClient.delete(`/products/${id}/`);
+        Swal.fire('Deleted!', 'Product has been removed.', 'success');
+        fetchData();
+      } catch (err) {
+        Swal.fire('Error', 'Cannot delete this product because it has associated inventory movements.', 'error');
+      }
+    }
+  };
+
+  // --- LÓGICA DE MOVIMIENTOS ---
   const handleCreateMovement = async (e) => {
     e.preventDefault();
     try {
@@ -63,7 +115,6 @@ const InventoryPage = () => {
     }
   };
 
-  // 3. Borrar Movimiento (Ajuste Manual si se equivocan)
   const handleDeleteMovement = async (id) => {
     const result = await Swal.fire({
       title: 'Delete record?',
@@ -93,21 +144,32 @@ const InventoryPage = () => {
         </h1>
         {/* BOTÓN TOP RIGHT - Agregar Producto Nuevo */}
         <button 
-          onClick={() => setShowProductModal(true)}
+          onClick={handleOpenNewProduct}
           className="bg-black text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-zinc-800 transition shadow-md"
         >
           <Plus size={18} /> Add New Product
         </button>
       </div>
 
-      {/* Cards de Stock Actual */}
+      {/* Cards de Stock Actual con Opciones de Edición/Eliminación */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {products.map(product => (
-          <div key={product.id} className="bg-white p-6 rounded-3xl shadow-sm border border-[#EBEBEB] flex flex-col justify-between">
+          <div key={product.id} className="bg-white p-6 rounded-3xl shadow-sm border border-[#EBEBEB] flex flex-col justify-between group">
             <div>
               <div className="flex justify-between items-start">
-                <p className="text-xs font-bold text-[#8C92AC] uppercase tracking-wider">{product.nombre}</p>
-                <span className="text-[9px] bg-gray-100 text-gray-500 px-2 py-1 rounded-md">{product.categoria}</span>
+                <div>
+                  <p className="text-xs font-bold text-[#8C92AC] uppercase tracking-wider">{product.nombre}</p>
+                  <span className="text-[9px] bg-gray-100 text-gray-500 px-2 py-1 rounded-md mt-1 inline-block">{product.categoria}</span>
+                </div>
+                {/* Botones de acción ocultos que aparecen al hacer hover */}
+                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => handleEditProductClick(product)} className="text-blue-400 hover:text-blue-600 transition bg-blue-50 p-1.5 rounded-lg">
+                    <Edit2 size={14} />
+                  </button>
+                  <button onClick={() => handleDeleteProduct(product.id)} className="text-red-400 hover:text-red-600 transition bg-red-50 p-1.5 rounded-lg">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
               <h3 className="text-2xl font-black mt-1">{product.stock} <span className="text-sm font-medium text-gray-500">{product.unidad_medida}</span></h3>
             </div>
@@ -125,7 +187,6 @@ const InventoryPage = () => {
           <h2 className="text-xl font-bold flex items-center gap-2">
             <Package size={22} className="text-[#8C92AC]" /> Movement History (Kardex)
           </h2>
-          {/* BOTÓN SOBRE LA TABLA - Ajuste Manual / Compra */}
           <button 
             onClick={() => setShowMovementModal(true)}
             className="flex items-center gap-2 bg-[#F4F6F8] text-black border border-[#E0E0E0] px-4 py-2 rounded-xl text-sm font-bold hover:bg-[#EBEBEB] transition"
@@ -188,21 +249,23 @@ const InventoryPage = () => {
         </div>
       </div>
 
-      {/* --- MODAL 1: NUEVO PRODUCTO --- */}
+      {/* --- MODAL 1: PRODUCTO (CREAR / EDITAR) --- */}
       {showProductModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
-            <h2 className="text-2xl font-black mb-6">Create Product Catalog</h2>
-            <form onSubmit={handleCreateProduct} className="space-y-4">
+            <h2 className="text-2xl font-black mb-6">{isEditingProduct ? 'Edit Product' : 'Create Product Catalog'}</h2>
+            <form onSubmit={handleSaveProduct} className="space-y-4">
               <div>
                 <label className="text-[10px] font-black text-[#8C92AC] uppercase">Product Name</label>
                 <input required className="w-full p-3 bg-[#F4F6F8] rounded-xl border border-[#E0E0E0] focus:ring-1 focus:ring-black outline-none" 
+                  value={productForm.nombre}
                   onChange={e => setProductForm({...productForm, nombre: e.target.value})} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] font-black text-[#8C92AC] uppercase">Category</label>
                   <select className="w-full p-3 bg-[#F4F6F8] rounded-xl border border-[#E0E0E0] outline-none"
+                    value={productForm.categoria}
                     onChange={e => setProductForm({...productForm, categoria: e.target.value})}>
                     <option value="Alimento">Alimento / Pienso</option>
                     <option value="Salud">Salud / Vacuna</option>
@@ -212,12 +275,21 @@ const InventoryPage = () => {
                 <div>
                   <label className="text-[10px] font-black text-[#8C92AC] uppercase">Unit (Kg, Dosis, L)</label>
                   <input required className="w-full p-3 bg-[#F4F6F8] rounded-xl border border-[#E0E0E0] outline-none"
+                    value={productForm.unidad_medida}
                     onChange={e => setProductForm({...productForm, unidad_medida: e.target.value})} />
                 </div>
               </div>
+              <div>
+                <label className="text-[10px] font-black text-[#8C92AC] uppercase">Current Value / Price (C$)</label>
+                <input type="number" step="0.01" className="w-full p-3 bg-[#F4F6F8] rounded-xl border border-[#E0E0E0] outline-none"
+                  value={productForm.precio_actual}
+                  onChange={e => setProductForm({...productForm, precio_actual: e.target.value})} />
+              </div>
               <div className="flex gap-3 mt-6 pt-4">
                 <button type="button" onClick={() => setShowProductModal(false)} className="flex-1 py-3 font-bold text-[#8C92AC] hover:text-black transition">Cancel</button>
-                <button type="submit" className="flex-1 py-3 bg-black text-white rounded-xl font-bold shadow-md hover:bg-zinc-800 transition">Save Product</button>
+                <button type="submit" className="flex-1 py-3 bg-black text-white rounded-xl font-bold shadow-md hover:bg-zinc-800 transition">
+                  {isEditingProduct ? 'Update Product' : 'Save Product'}
+                </button>
               </div>
             </form>
           </div>
@@ -233,6 +305,7 @@ const InventoryPage = () => {
               <div>
                 <label className="text-[10px] font-black text-[#8C92AC] uppercase">Select Product</label>
                 <select required className="w-full p-3 bg-[#F4F6F8] rounded-xl border border-[#E0E0E0] outline-none"
+                  value={movementForm.producto}
                   onChange={e => setMovementForm({...movementForm, producto: e.target.value})}>
                   <option value="">-- Choose --</option>
                   {products.map(p => <option key={p.id} value={p.id}>{p.nombre} ({p.stock} {p.unidad_medida} available)</option>)}
@@ -242,6 +315,7 @@ const InventoryPage = () => {
                 <div>
                   <label className="text-[10px] font-black text-[#8C92AC] uppercase">Type</label>
                   <select className="w-full p-3 bg-[#F4F6F8] rounded-xl border border-[#E0E0E0] outline-none"
+                    value={movementForm.tipo_movimiento}
                     onChange={e => setMovementForm({...movementForm, tipo_movimiento: e.target.value})}>
                     <option value="Entrada">Entrada (+)</option>
                     <option value="Salida">Salida (-)</option>
@@ -250,6 +324,7 @@ const InventoryPage = () => {
                 <div>
                   <label className="text-[10px] font-black text-[#8C92AC] uppercase">Quantity</label>
                   <input type="number" step="0.01" required className="w-full p-3 bg-[#F4F6F8] rounded-xl border border-[#E0E0E0] outline-none"
+                    value={movementForm.cantidad}
                     onChange={e => setMovementForm({...movementForm, cantidad: e.target.value})} />
                 </div>
               </div>
@@ -257,11 +332,13 @@ const InventoryPage = () => {
                 <div>
                   <label className="text-[10px] font-black text-[#8C92AC] uppercase">Reason</label>
                   <input placeholder="e.g. Compra Insumos" required className="w-full p-3 bg-[#F4F6F8] rounded-xl border border-[#E0E0E0] outline-none"
+                    value={movementForm.motivo}
                     onChange={e => setMovementForm({...movementForm, motivo: e.target.value})} />
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-[#8C92AC] uppercase">Total Cost (Optional)</label>
                   <input type="number" step="0.01" placeholder="C$" className="w-full p-3 bg-[#F4F6F8] rounded-xl border border-[#E0E0E0] outline-none"
+                    value={movementForm.costo_unitario}
                     onChange={e => setMovementForm({...movementForm, costo_unitario: e.target.value})} />
                 </div>
               </div>

@@ -56,3 +56,16 @@ GO
 ALTER TABLE Movimientos_Inventario 
 ADD Fecha_movimiento DATETIME DEFAULT GETDATE();
 GO
+
+//the connection betwwen the tables Feeding_log and products doesnt exists
+//sou insert this consult for add the connection one 
+ALTER TABLE Feeding_Log 
+ADD ID_producto INT NULL;
+GO
+
+ALTER TABLE Feeding_Log 
+ADD CONSTRAINT FK_Feeding_Producto FOREIGN KEY (ID_producto) REFERENCES Productos(ID_producto);
+GO
+
+ALTER TABLE Feeding_Log DROP COLUMN Food_Type;
+/// here finish all about it

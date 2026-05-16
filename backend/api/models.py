@@ -38,10 +38,11 @@ class FeedingLog(models.Model):
     id = models.AutoField(primary_key=True, db_column='ID_feeding')
     batch = models.ForeignKey(Batch, on_delete=models.CASCADE, db_column='ID_batch')
     date = models.DateField(db_column='Date', auto_now_add=True)
-    food_type = models.CharField(max_length=50, db_column='Food_Type')
-    quantity_kg = models.DecimalField(max_digits=10, decimal_places=2, db_column='Quantity_kg')
     schedule = models.CharField(max_length=20, db_column='Schedule')
     observations = models.TextField(db_column='Observations', null=True)
+    producto = models.ForeignKey('Products', models.DO_NOTHING, db_column='ID_producto', null=True)
+    quantity_kg = models.DecimalField(db_column='Quantity_kg', max_digits=10, decimal_places=2)
+    
 
     class Meta:
         managed = False
@@ -102,6 +103,7 @@ class Products(models.Model):
     unidad_medida = models.CharField(max_length=50, db_column='Unidad_medida') 
     precio_actual = models.DecimalField(max_digits=10, decimal_places=2, db_column='Precio_actual')
     stock = models.DecimalField(max_digits=10, decimal_places=2, db_column='Stock')
+    categoria = models.CharField(max_length=50, db_column='Categoria', default='Venta')
 
     class Meta:
         managed = False
