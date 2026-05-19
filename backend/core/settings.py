@@ -81,6 +81,7 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -125,13 +126,10 @@ DATABASES = {
     'default': {
         'ENGINE': 'mssql',
         'NAME': 'BaltodanoFarm',
-        'USER': 'SA',  
-        'PASSWORD': 'Mirai2028.', 
-        'HOST': '127.0.0.1',
-        'PORT': '1433',
+        'HOST': 'localhost', 
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',
-            'extra_params': 'TrustServerCertificate=yes;Trusted_Connection=no;',
+            'extra_params': 'Trusted_Connection=yes;',
         },
     }
 }

@@ -14,28 +14,36 @@ import {
   ChartSpline,
   Boxes,
   DoorOpen,
-  CirclePlus
 } from "lucide-react";
 import { cn } from "./ui/utils";
 
 const menuItems = [
   { name: "Dashboard", path: "/", icon: LayoutDashboard },
   { name: "Livestock", path: "/livestock", icon: Beef },
-  { name: "Add Inventory", path: "/add-livestock", icon: CirclePlus },
   { name: "Feeding", path: "/feeding", icon: Sprout },
   { name: "Health", path: "/health", icon: Stethoscope },
   { name: "Production", path: "/production", icon: TrendingUp },
-  {name: "Sales", path: "/sales", icon: DollarSign},
-  { name: "Finances", path: "/finances", icon: ChartSpline },
+  { name: "Sales", path: "/sales", icon: DollarSign },
+  { name: "Finances", path: "/finances", icon: ChartSpline, restrictTo: "Gerente" },
   { name: "Inventory", path: "/inventory", icon: Boxes },
   { name: "OutFlow", path: "/outflow", icon: DoorOpen },
-  { name: "Reports", path: "/reports", icon: BarChart3 },
+  { name: "Reports", path: "/reports", icon: BarChart3, restrictTo: "Gerente" },
   { name: "Settings", path: "/settings", icon: Settings },
 ];
 
 export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
+  
+  const userRole = localStorage.getItem('rol') || 'Capataz';
+  const isManager = userRole === 'Gerente';
+
+  const filteredMenuItems = menuItems.filter(item => {
+    if (item.restrictTo) {
+      return item.restrictTo === userRole;
+    }
+    return true; 
+  });
 
   return (
     <aside
@@ -65,7 +73,7 @@ export default function Sidebar() {
 
       {/* Navigation Links */}
       <nav className="flex-1 px-3 space-y-1 mt-4 overflow-y-auto">
-        {menuItems.map((item) => {
+        {filteredMenuItems.map((item) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
 
@@ -104,19 +112,28 @@ export default function Sidebar() {
       {/* User Profile Section */}
       <div
         className={cn(
-          "p-4 border-t border-white/5 bg-black/20 flex-shrink-0",
+          "p-4 border-t border-white/5 bg-black/20 flex-shrink-0 cursor-pointer hover:bg-black/40 transition-colors",
           isCollapsed && "flex justify-center",
         )}
+        onClick={() => {
+          // Opcional: Un pequeño botón/acción para cerrar sesión
+          if(window.confirm('¿Cerrar sesión?')) {
+            localStorage.clear();
+            window.location.href = '/login';
+          }
+        }}
       >
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-full bg-ganadero-active flex-shrink-0 flex items-center justify-center text-black font-black">
-            CB
+            {isManager ? 'GE' : 'CA'}
           </div>
           {!isCollapsed && (
             <div className="overflow-hidden">
-              <p className="text-sm font-bold text-white truncate">Carles B.</p>
+              <p className="text-sm font-bold text-white truncate">
+                {isManager ? 'Gerencia' : 'Capataz'}
+              </p>
               <p className="text-[10px] text-gray-500 uppercase tracking-wider">
-                Admin
+                {userRole}
               </p>
             </div>
           )}

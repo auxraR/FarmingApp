@@ -5,6 +5,8 @@ from django.db import transaction
 from rest_framework.decorators import action
 from django.utils import timezone
 from datetime import timedelta
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import (
     Livestock,
@@ -210,3 +212,20 @@ class InventoryMovementViewSet(viewsets.ModelViewSet):
     serializer_class = InventoryMovementSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['tipo_movimiento', 'producto', 'motivo']
+
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        try:
+            rol = self.user.profile.rol
+        except:
+            rol = 'Capataz' 
+        
+        data['rol'] = rol
+        data['username'] = self.user.username
+        return data
+
+class CustomLoginView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer

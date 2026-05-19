@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 class Livestock(models.Model):
     id = models.AutoField(primary_key=True, db_column='ID_ganado')
@@ -162,3 +163,15 @@ class InventoryMovement(models.Model):
     class Meta:
         managed = False 
         db_table = 'Movimientos_Inventario'
+
+
+class UserProfile(models.Model):
+    ROLES = (
+        ('Gerente', 'Gerente'),
+        ('Capataz', 'Capataz'),
+    )
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    rol = models.CharField(max_length=20, choices=ROLES, default='Capataz')
+
+    class Meta:
+        db_table = 'User_Profiles'

@@ -69,3 +69,24 @@ GO
 
 ALTER TABLE Feeding_Log DROP COLUMN Food_Type;
 /// here finish all about it
+
+
+//about the exactly time in the system you need to update the tables
+USE BaltodanoFarm; -- Asegúrate de estar en tu base de datos
+GO
+
+-- 1. Romper el candado (Eliminar el Default Constraint viejo)
+-- (Copia el nombre exacto que te dio el error)
+ALTER TABLE Ventas 
+DROP CONSTRAINT DF__Ventas__Fecha_ve__5070F446;
+GO
+
+-- 2. Ahora sí, cambiar la columna para que acepte Fecha y Hora
+ALTER TABLE Ventas 
+ALTER COLUMN Fecha_venta DATETIME;
+GO
+
+-- 3. Volver a poner el candado, pero ahora guardando la hora exacta (GETDATE)
+ALTER TABLE Ventas 
+ADD CONSTRAINT DF_Ventas_Fecha_venta DEFAULT GETDATE() FOR Fecha_venta;
+GO

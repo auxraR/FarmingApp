@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from api.views import (
+    CustomLoginView,
     LivestockViewSet,
     BatchViewSet,
     FeedingLogViewSet,
@@ -31,6 +32,7 @@ router.register(r'sales-outflow', SalidaViewSet, basename='sales-outflow')
 router.register(r'inventory-movements', InventoryMovementViewSet)
 
 urlpatterns = [
+    path('api/login/', CustomLoginView.as_view(), name='login'),
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
 ]
