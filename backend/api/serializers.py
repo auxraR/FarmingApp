@@ -12,7 +12,8 @@ from .models import (
     Sales,
     SalesDetails,
     Salida,
-    InventoryMovement
+    InventoryMovement,
+    MarketPrice
 )
 
 class LivestockSerializer(serializers.ModelSerializer):
@@ -20,7 +21,10 @@ class LivestockSerializer(serializers.ModelSerializer):
         model = Livestock
         fields = '__all__' 
 
-
+class MarketPriceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MarketPrice
+        fields= '__all__'
 
 class BatchSerializer(serializers.ModelSerializer):
     class Meta:

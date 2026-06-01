@@ -17,10 +17,37 @@ class Livestock(models.Model):
     
     metodo_obtencion = models.CharField(max_length=50, db_column='Metodo_obtencion', null=True, blank=True)
     estado = models.IntegerField(db_column='Estado', default=1)
-
+    batch = models.ForeignKey('Batch', on_delete=models.SET_NULL, null=True, blank=True, db_column='batch')
+    categoria = models.ForeignKey(
+        'PrecioMercado', 
+        on_delete=models.RESTRICT,
+        db_column='categoria_id'
+    )
+    valor_manual = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     class Meta:
         managed = False  
         db_table = 'Ganado'
+    
+    categoria = models.ForeignKey(
+        'MarketPrice', 
+        on_delete=models.RESTRICT, 
+        db_column='categoria_id'
+    )
+    valor_manual = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+
+    @property
+    def valor_estimado(self):
+        if self.valor_manual is not None:
+            return float(self.valor_manual)
+            
+        try:
+            precio_obj = MarketPrice.objects.get(categoria=self.categoria.categoria) # Ajusta según tu campo
+            precio_kilo = float(precio_obj.precio_kg)
+            peso_animal = float(self.peso or 0)
+            
+            return round(peso_animal * precio_kilo, 2)
+        except MarketPrice.DoesNotExist:
+            return 0.0
 
     def __str__(self):
         return f"{self.nombre} - {self.raza}"
@@ -175,3 +202,24 @@ class UserProfile(models.Model):
 
     class Meta:
         db_table = 'User_Profiles'
+
+
+class MarketPrice(models.Model):
+    categoria = models.CharField(max_length=50, unique=True)
+    precio_kg = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        db_table = 'Precios_Mercado'
+
+    def __str__(self):
+        return f"{self.categoria} - C${self.precio_kg}/kg"
+    
+
+class CashRegister(models.Model):
+    saldo_inicial = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    fecha_registro = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'Control_Caja'
+
+

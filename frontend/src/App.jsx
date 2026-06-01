@@ -9,6 +9,8 @@ import OutflowPage from "./components/OutFlow";
 import InventoryPage from "./components/inventory";
 import Dashboard from "./components/dashboard";
 import Login from "./components/Login";
+import SettingsPage from "./components/Settings";
+import FinancesPage from "./components/Finances";
 
 
 const PrivateRoute = ({ allowedRoles }) => {
@@ -48,6 +50,8 @@ function App() {
           <Route path="/outflow" element={<OutflowPage />} />
           <Route path="/inventory" element={<InventoryPage /> } />
           <Route path="*" element={<div className="p-6">Page not found</div>} />
+          <Route path="/settings" element= {<SettingsPage />} />
+          <Route path="/finances" element= {<FinancesPage />} />
         </Route>
 
         {/* RUTAS EXCLUSIVAS (Solo Gerente) */}

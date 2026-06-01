@@ -14,7 +14,9 @@ from api.views import (
     ProductsViewSet,
     SalesDetailsViewSet,
     SalidaViewSet,
-    InventoryMovementViewSet
+    InventoryMovementViewSet,
+    MarketPriceViewSet,
+    FinanceSummaryView
 )
 
 router = DefaultRouter()
@@ -30,9 +32,11 @@ router.register(r'products', ProductsViewSet, basename='products')
 router.register(r'sales-details', SalesDetailsViewSet, basename='sales-details')
 router.register(r'sales-outflow', SalidaViewSet, basename='sales-outflow')
 router.register(r'inventory-movements', InventoryMovementViewSet)
+router.register(r'precios-mercado', MarketPriceViewSet, basename='precios-mercado')
 
 urlpatterns = [
     path('api/login/', CustomLoginView.as_view(), name='login'),
+    path('api/finances/', FinanceSummaryView.as_view(), name='finances-summary'),
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
 ]

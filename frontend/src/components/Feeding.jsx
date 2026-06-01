@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import apiClient from '../api/client';
-import { Plus, Trash2, Edit2, X } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, Search } from 'lucide-react';
 import Swal from 'sweetalert2'
 
 export default function FeedingPage() {
@@ -12,6 +12,9 @@ export default function FeedingPage() {
   const [selectedLog, setSelectedLog] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [feedProducts, setFeedProducts] = useState([]);
+
+  // Estado para el buscador
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [formData, setFormData] = useState({
     batch: '', food_type: '', quantity_kg: '', schedule: 'Morning', observations: ''
@@ -37,7 +40,6 @@ export default function FeedingPage() {
 
   useEffect(() => { fetchData(); }, []);
 
-
   const handleAddNew = () => {
     setSelectedLog(null); 
     setIsEditing(true); 
@@ -51,73 +53,74 @@ export default function FeedingPage() {
   };
 
   const handleEditClick = async (e, log) => {
-  e.stopPropagation();
+    e.stopPropagation();
 
-  const result = await Swal.fire({
-    title: 'Are you sure you want to edit this record?',
-    icon: 'question',
-    showCancelButton: true,
-    confirmButtonColor: '#3085d6',
-    cancelButtonColor: '#aaa',
-    confirmButtonText: 'Yes, edit it',
-    cancelButtonText: 'Cancel'
-  });
-
-  if (result.isConfirmed) {
-    setSelectedLog(log);
-    setFormData({
-      batch: log.batch,
-      food_type: log.food_type,
-      quantity_kg: log.quantity_kg,
-      schedule: log.schedule,
-      observations: log.observations
+    const result = await Swal.fire({
+      title: 'Are you sure you want to edit this record?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#aaa',
+      confirmButtonText: 'Yes, edit it',
+      cancelButtonText: 'Cancel'
     });
-    setIsEditing(true);
-    setIsModalOpen(true);
-  }
-};
 
-const handleDelete = async (e, id) => {
-  e.stopPropagation();
-
-  const result = await Swal.fire({
-    title: 'Are you sure?',
-    text: "You won't be able to revert this!",
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#d33',
-    cancelButtonColor: '#3085d6',
-    confirmButtonText: 'Yes, delete it',
-    cancelButtonText: 'Cancel'
-  });
-
-  if (result.isConfirmed) {
-    try {
-      await apiClient.delete(`/feeding/${id}/`);
-      fetchData();
-      Swal.fire(
-        'Deleted!',
-        'The record has been deleted.',
-        'success'
-      );
-    } catch {
-      Swal.fire(
-        'Error',
-        'Could not delete the record.',
-        'error'
-      );
+    if (result.isConfirmed) {
+      setSelectedLog(log);
+      setFormData({
+        batch: log.batch,
+        food_type: log.food_type,
+        quantity_kg: log.quantity_kg,
+        schedule: log.schedule,
+        observations: log.observations
+      });
+      setIsEditing(true);
+      setIsModalOpen(true);
     }
-  }
-};
+  };
 
-const handleSave = async (e) => {
+  const handleDelete = async (e, id) => {
+    e.stopPropagation();
+
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete it',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await apiClient.delete(`/feeding/${id}/`);
+        fetchData();
+        Swal.fire(
+          'Deleted!',
+          'The record has been deleted.',
+          'success'
+        );
+      } catch {
+        Swal.fire(
+          'Error',
+          'Could not delete the record.',
+          'error'
+        );
+      }
+    }
+  };
+
+  const handleSave = async (e) => {
     e.preventDefault();
     const qtyNum = Number(formData.quantity_kg);
     const productoSeleccionado = feedProducts.find(p => p.id === Number(formData.producto));
-    if (!Number.isFinite(qtyNum) || qtyNum < 0 || productoSeleccionado && qtyNum > productoSeleccionado.stock) {
+    
+    if (!Number.isFinite(qtyNum) || qtyNum < 0 || (productoSeleccionado && qtyNum > productoSeleccionado.stock)) {
       Swal.fire({
         title: 'Invalid Quantity',
-        text: 'Quantity (kg) cannot be negative or there a not enough food ',
+        text: 'Quantity (kg) cannot be negative or there is not enough food.',
         icon: 'error',
         confirmButtonText: 'OK',
       });
@@ -125,9 +128,6 @@ const handleSave = async (e) => {
     }
 
     try {
-
-      const productoSeleccionado = feedProducts.find(p => p.id === Number(formData.producto));
-      
       const payload = { 
         ...formData, 
         quantity_kg: qtyNum,
@@ -165,15 +165,40 @@ const handleSave = async (e) => {
     }
   };
 
+  // 🔥 LÓGICA DE FILTRADO Y LÍMITE A 7 REGISTROS
+  const processedLogs = logs
+    .filter(log => {
+      const term = searchTerm.toLowerCase();
+      const dateMatch = log.date && log.date.toLowerCase().includes(term);
+      const batchMatch = log.batch_name && log.batch_name.toLowerCase().includes(term);
+      return dateMatch || batchMatch;
+    })
+    .sort((a, b) => new Date(b.date) - new Date(a.date)) // Ordenar del más reciente al más antiguo
+    .slice(0, 7); // Limitar a los 7 primeros resultados
+
   if (loading) return <div className="p-8 text-ganadero-active animate-pulse">Loading data...</div>;
 
   return (
     <div className="space-y-6 text-black-700 p-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <h1 className="text-2xl font-bold text-black-700">Feeding Records</h1>
-        <button onClick={handleAddNew} className="bg-ganadero-active text-black px-4 py-2 rounded-xl font-bold flex items-center gap-2">
-          <Plus size={18}/> New Entry
-        </button>
+        
+        {/* BUSCADOR Y BOTÓN NUEVO */}
+        <div className="flex gap-4 items-center">
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Search by date or batch..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-black/10 rounded-xl outline-none focus:border-ganadero-active text-sm"
+            />
+          </div>
+          <button onClick={handleAddNew} className="bg-ganadero-active text-black px-4 py-2 rounded-xl font-bold flex items-center gap-2 whitespace-nowrap">
+            <Plus size={18}/> New Entry
+          </button>
+        </div>
       </div>
 
       <div className="bg-[#f8f9fa] rounded-2xl border border-black/10 overflow-hidden shadow-2xl">
@@ -188,20 +213,28 @@ const handleSave = async (e) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-black/10">
-            {logs.map((log) => (
-              <tr key={log.id} onClick={() => handleViewDetails(log)} className="hover:bg-black/5 cursor-pointer transition-colors group">
-                <td className="p-4 text-xs text-gray-600">{log.date}</td>
-                <td className="p-4 font-bold text-black-700 group-hover:text-green-600 transition-colors">{log.batch_name}</td>
-                <td className="p-4 text-sm text-gray-700">{log.food_type}</td>
-                <td className="p-4 text-sm font-bold text-black-700">{log.quantity_kg} kg</td>
-                <td className="p-4 text-center">
-                  <div className="flex justify-center gap-2">
-                    <button onClick={(e) => handleEditClick(e, log)} className="p-2 hover:bg-blue-500/20 text-blue-400 rounded-lg"><Edit2 size={14}/></button>
-                    <button onClick={(e) => handleDelete(e, log.id)} className="p-2 hover:bg-red-500/20 text-red-400 rounded-lg"><Trash2 size={14}/></button>
-                  </div>
+            {processedLogs.length > 0 ? (
+              processedLogs.map((log) => (
+                <tr key={log.id} onClick={() => handleViewDetails(log)} className="hover:bg-black/5 cursor-pointer transition-colors group">
+                  <td className="p-4 text-xs text-gray-600">{log.date}</td>
+                  <td className="p-4 font-bold text-black-700 group-hover:text-green-600 transition-colors">{log.batch_name}</td>
+                  <td className="p-4 text-sm text-gray-700">{log.food_type}</td>
+                  <td className="p-4 text-sm font-bold text-black-700">{log.quantity_kg} kg</td>
+                  <td className="p-4 text-center">
+                    <div className="flex justify-center gap-2">
+                      <button onClick={(e) => handleEditClick(e, log)} className="p-2 hover:bg-blue-500/20 text-blue-400 rounded-lg"><Edit2 size={14}/></button>
+                      <button onClick={(e) => handleDelete(e, log.id)} className="p-2 hover:bg-red-500/20 text-red-400 rounded-lg"><Trash2 size={14}/></button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="5" className="p-8 text-center text-gray-500 text-sm">
+                  No feeding records found.
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>

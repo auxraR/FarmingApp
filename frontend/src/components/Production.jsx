@@ -157,13 +157,18 @@ const ProductionPage = () => {
     }
   };
 
-  const filteredRecords = productionRecords.filter((rec) => {
-    const q = searchTerm.trim().toLowerCase();
-    if (!q) return true;
-    const name = (rec.animal_name || '').toString().toLowerCase();
-    const id = (rec.animal ?? '').toString().toLowerCase();
-    return name.includes(q) || id.includes(q);
-  });
+  // 🔥 LÓGICA DE FILTRADO, ORDENAMIENTO Y LÍMITE (Últimos 7)
+  const filteredRecords = productionRecords
+    .filter((rec) => {
+      const q = searchTerm.trim().toLowerCase();
+      if (!q) return true;
+      const name = (rec.animal_name || '').toString().toLowerCase();
+      const id = (rec.animal ?? '').toString().toLowerCase();
+      const dateStr = (rec.date || '').toString().toLowerCase(); // Se incluye la fecha en la búsqueda
+      return name.includes(q) || id.includes(q) || dateStr.includes(q);
+    })
+    .sort((a, b) => new Date(b.date) - new Date(a.date)) // Del más reciente al más antiguo
+    .slice(0, 7); // Solo 7 registros
 
   if (isLoading) return <div className="flex-1 p-8 bg-[#F4F6F8] text-center mt-20">Loading...</div>;
 
@@ -236,8 +241,8 @@ const ProductionPage = () => {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by cow name or ID..."
-              className="pl-10 pr-4 py-3 bg-[#F4F6F8] rounded-full text-sm border border-[#E0E0E0] focus:ring-1 focus:ring-[#11131F]"
+              placeholder="Search by cow name, ID or date..."
+              className="w-72 pl-10 pr-4 py-3 bg-[#F4F6F8] rounded-full text-sm border border-[#E0E0E0] focus:ring-1 focus:ring-[#11131F]"
             />
           </div>
         </div>
@@ -248,23 +253,31 @@ const ProductionPage = () => {
                 <th className="p-5 rounded-l-xl">Date / Time</th>
                 <th className="p-5">Cow ID / Name</th>
                 <th className="p-5">Liters Produced</th>
-                <th className="p-5 rounded-r-xl">Actions</th>
+                <th className="p-5 rounded-r-xl text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#EBEBEB]">
-              {filteredRecords.slice(0, 10).map((record) => (
-                <tr key={record.id} className="hover:bg-[#F9FAFB] transition-colors">
-                  <td className="p-5 text-sm text-[#8C92AC]">{new Date(record.date).toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
-                  <td className="p-5 text-sm font-semibold text-black">{record.animal_name || `#${record.animal}`}</td>
-                  <td className="p-5 text-base font-bold text-[#77F74A]">{parseFloat(record.liters_produced).toFixed(2)} L</td>
-                  <td className="p-5 text-sm">
-                    <div className="flex items-center gap-3">
-                      <button onClick={(e) => handleEdit(e, record)} className="text-[#3498DB] hover:text-black p-1.5 rounded-full hover:bg-blue-50"><Edit2 size={16} /></button>
-                      <button onClick={(e) => handleDelete(e, record.id)} className="text-[#EF4444] hover:text-black p-1.5 rounded-full hover:bg-red-50"><Trash2 size={16} /></button>
-                    </div>
+              {filteredRecords.length > 0 ? (
+                filteredRecords.map((record) => (
+                  <tr key={record.id} className="hover:bg-[#F9FAFB] transition-colors">
+                    <td className="p-5 text-sm text-[#8C92AC]">{new Date(record.date).toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
+                    <td className="p-5 text-sm font-semibold text-black">{record.animal_name || `#${record.animal}`}</td>
+                    <td className="p-5 text-base font-bold text-[#77F74A]">{parseFloat(record.liters_produced).toFixed(2)} L</td>
+                    <td className="p-5 text-sm">
+                      <div className="flex items-center justify-center gap-3">
+                        <button onClick={(e) => handleEdit(e, record)} className="text-[#3498DB] hover:text-black p-1.5 rounded-full hover:bg-blue-50"><Edit2 size={16} /></button>
+                        <button onClick={(e) => handleDelete(e, record.id)} className="text-[#EF4444] hover:text-black p-1.5 rounded-full hover:bg-red-50"><Trash2 size={16} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4" className="p-8 text-center text-[#8C92AC] text-sm">
+                    No milking sessions found.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -275,7 +288,7 @@ const ProductionPage = () => {
           <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl border border-[#EBEBEB]">
             <h2 className="text-2xl font-bold text-black mb-6">{editingId ? 'Edit Milking Session' : 'Record Milking Session'}</h2>
             <form onSubmit={handleSubmitMilking} className="space-y-5">
-              {/* Selector de Animal (B&W sutil) */}
+              {/* Selector de Animal */}
               <div>
                 <label className="block text-sm font-semibold text-[#8C92AC] mb-1.5">Select Cow *</label>
                 <select name="animal" value={form.animal} onChange={handleInputChange} className="w-full p-3 py-3.5 bg-[#F4F6F8] rounded-xl text-black border border-[#E0E0E0] text-sm focus:ring-1 focus:ring-[#11131F]" required>
@@ -285,12 +298,12 @@ const ProductionPage = () => {
                   ))}
                 </select>
               </div>
-              {/* Input Litros (B&W sutil con Rojo) */}
+              {/* Input Litros */}
               <div>
                 <label className="block text-sm font-semibold text-[#8C92AC] mb-1.5">Liters Produced *</label>
                 <input type="number" step="0.01" min="0" name="liters_produced" value={form.liters_produced} onChange={handleInputChange} className="w-full p-3 py-3.5 bg-[#F4F6F8] rounded-xl text-black border border-[#E0E0E0] text-lg font-bold focus:ring-1 focus:ring-[#11131F]" placeholder="0.00" required />
               </div>
-              {/* Input Fecha (automática sutil) */}
+              {/* Input Fecha */}
               <div>
                 <label className="block text-sm font-semibold text-[#8C92AC] mb-1.5">Date (Automatic Today)</label>
                 <input type="date" name="date" value={form.date} onChange={handleInputChange} className="w-full p-3 bg-[#F4F6F8] rounded-xl text-[#8C92AC] border border-[#E0E0E0] text-sm" />

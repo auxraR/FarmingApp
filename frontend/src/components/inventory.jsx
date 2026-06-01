@@ -1,22 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../api/client';
-import { Boxes, TrendingUp, TrendingDown, Package, Plus, Trash2, Edit2 } from 'lucide-react';
+import { Boxes, TrendingUp, TrendingDown, Package, Plus, Trash2, Edit2, Search } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 const InventoryPage = () => {
   const [products, setProducts] = useState([]);
   const [movements, setMovements] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // Estados para modales
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('');
   const [showProductModal, setShowProductModal] = useState(false);
   const [showMovementModal, setShowMovementModal] = useState(false);
-
-  // Estados para saber si estamos editando
   const [isEditingProduct, setIsEditingProduct] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState(null);
-
-  // Estados de formularios
   const [productForm, setProductForm] = useState({ nombre: '', categoria: 'Alimento', unidad_medida: 'Kg', precio_actual: 0 });
   const [movementForm, setMovementForm] = useState({ producto: '', tipo_movimiento: 'Entrada', cantidad: '', motivo: 'Compra', costo_unitario: '', observaciones: '' });
 
@@ -39,7 +34,6 @@ const InventoryPage = () => {
     }
   };
 
-  // --- LÓGICA DE PRODUCTOS (CREAR Y EDITAR) ---
   const handleOpenNewProduct = () => {
     setIsEditingProduct(false);
     setSelectedProductId(null);
@@ -101,7 +95,6 @@ const InventoryPage = () => {
     }
   };
 
-  // --- LÓGICA DE MOVIMIENTOS ---
   const handleCreateMovement = async (e) => {
     e.preventDefault();
     try {
@@ -135,6 +128,22 @@ const InventoryPage = () => {
       }
     }
   };
+
+  const filteredMovements = movements
+    .filter((mov) => {
+      const q = searchTerm.trim().toLowerCase();
+      if (!q) return true;
+      
+      const prodName = (mov.producto_nombre || '').toLowerCase();
+      const type = (mov.tipo_movimiento || '').toLowerCase();
+      const dateStr = new Date(mov.fecha_movimiento).toLocaleDateString().toLowerCase(); 
+      
+      return prodName.includes(q) || type.in 
+    })
+    .sort((a, b) => new Date(b.fecha_movimiento) - new Date(a.fecha_movimiento))
+    .slice(0, 7); 
+
+  if (loading) return <div className="flex-1 p-8 bg-[#F4F6F8] text-[#8C92AC] font-bold">Loading Inventory...</div>;
 
   return (
     <div className="flex-1 bg-[#F4F6F8] min-h-screen p-8 mt-[0px]">
@@ -183,16 +192,31 @@ const InventoryPage = () => {
 
       {/* Tabla de Movimientos (Kardex) */}
       <div className="bg-white rounded-3xl shadow-sm border border-[#EBEBEB] overflow-hidden">
-        <div className="p-6 border-b border-[#EBEBEB] flex justify-between items-center">
-          <h2 className="text-xl font-bold flex items-center gap-2">
+        <div className="p-6 border-b border-[#EBEBEB] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <h2 className="text-xl font-bold flex items-center gap-2 text-[#11131F]">
             <Package size={22} className="text-[#8C92AC]" /> Movement History (Kardex)
           </h2>
-          <button 
-            onClick={() => setShowMovementModal(true)}
-            className="flex items-center gap-2 bg-[#F4F6F8] text-black border border-[#E0E0E0] px-4 py-2 rounded-xl text-sm font-bold hover:bg-[#EBEBEB] transition"
-          >
-            <Plus size={16} /> Manual Adjustment / Restock
-          </button>
+          
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            {/* BUSCADOR DE KARDEX */}
+            <div className="relative flex-1 md:w-64">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+              <input
+                type="text"
+                placeholder="Search by product, type or date..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 bg-[#F4F6F8] rounded-xl text-sm border border-[#E0E0E0] focus:ring-1 focus:ring-black outline-none"
+              />
+            </div>
+
+            <button 
+              onClick={() => setShowMovementModal(true)}
+              className="flex items-center gap-2 bg-[#F4F6F8] text-black border border-[#E0E0E0] px-4 py-2 rounded-xl text-sm font-bold hover:bg-[#EBEBEB] transition whitespace-nowrap"
+            >
+              <Plus size={16} /> Manual Adjustment
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -209,43 +233,48 @@ const InventoryPage = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#EBEBEB]">
-              {movements.map((mov) => (
-                <tr key={mov.id} className="hover:bg-[#F9FAFB] transition-colors">
-                  <td className="p-4 text-xs font-medium text-[#8C92AC]">
-                    {new Date(mov.fecha_movimiento).toLocaleDateString()}
-                  </td>
-                  <td className="p-4">
-                    <p className="text-sm font-bold text-black">{mov.producto_nombre}</p>
-                  </td>
-                  <td className="p-4">
-                    <div className={`flex items-center gap-1 font-bold text-[10px] uppercase px-2 py-1 rounded-lg w-fit border ${
-                      mov.tipo_movimiento === 'Entrada' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-red-50 text-red-600 border-red-200'
-                    }`}>
-                      {mov.tipo_movimiento === 'Entrada' ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                      {mov.tipo_movimiento}
-                    </div>
-                  </td>
-                  <td className={`p-4 font-black text-sm ${mov.tipo_movimiento === 'Entrada' ? 'text-green-600' : 'text-red-600'}`}>
-                    {mov.tipo_movimiento === 'Entrada' ? '+' : '-'}{mov.cantidad}
-                  </td>
-                  <td className="p-4">
-                    <span className="text-xs font-semibold text-[#8C92AC] bg-gray-100 px-2 py-1 rounded-md">{mov.motivo}</span>
-                  </td>
-                  <td className="p-4 text-right font-bold text-sm">
-                    {mov.costo_unitario ? `C$ ${mov.costo_unitario}` : '--'}
-                  </td>
-                  <td className="p-4 text-center">
-                    <button onClick={() => handleDeleteMovement(mov.id)} className="text-red-400 hover:text-red-600 transition p-1">
-                      <Trash2 size={16} />
-                    </button>
+              {filteredMovements.length > 0 ? (
+                filteredMovements.map((mov) => (
+                  <tr key={mov.id} className="hover:bg-[#F9FAFB] transition-colors">
+                    <td className="p-4 text-xs font-medium text-[#8C92AC]">
+                      {new Date(mov.fecha_movimiento).toLocaleDateString()}
+                    </td>
+                    <td className="p-4">
+                      <p className="text-sm font-bold text-black">{mov.producto_nombre}</p>
+                    </td>
+                    <td className="p-4">
+                      <div className={`flex items-center gap-1 font-bold text-[10px] uppercase px-2 py-1 rounded-lg w-fit border ${
+                        mov.tipo_movimiento === 'Entrada' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-red-50 text-red-600 border-red-200'
+                      }`}>
+                        {mov.tipo_movimiento === 'Entrada' ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                        {mov.tipo_movimiento}
+                      </div>
+                    </td>
+                    <td className={`p-4 font-black text-sm ${mov.tipo_movimiento === 'Entrada' ? 'text-green-600' : 'text-red-600'}`}>
+                      {mov.tipo_movimiento === 'Entrada' ? '+' : '-'}{mov.cantidad}
+                    </td>
+                    <td className="p-4">
+                      <span className="text-xs font-semibold text-[#8C92AC] bg-gray-100 px-2 py-1 rounded-md">{mov.motivo}</span>
+                    </td>
+                    <td className="p-4 text-right font-bold text-sm">
+                      {mov.costo_unitario ? `C$ ${mov.costo_unitario}` : '--'}
+                    </td>
+                    <td className="p-4 text-center">
+                      <button onClick={() => handleDeleteMovement(mov.id)} className="text-red-400 hover:text-red-600 transition p-1">
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="7" className="p-10 text-center text-[#8C92AC] text-sm">
+                    No movements matched your search.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
-          {movements.length === 0 && (
-            <div className="p-10 text-center text-[#8C92AC] italic font-medium">No inventory movements recorded.</div>
-          )}
         </div>
       </div>
 

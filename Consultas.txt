@@ -75,18 +75,94 @@ ALTER TABLE Feeding_Log DROP COLUMN Food_Type;
 USE BaltodanoFarm; -- Asegúrate de estar en tu base de datos
 GO
 
--- 1. Romper el candado (Eliminar el Default Constraint viejo)
--- (Copia el nombre exacto que te dio el error)
 ALTER TABLE Ventas 
 DROP CONSTRAINT DF__Ventas__Fecha_ve__5070F446;
 GO
 
--- 2. Ahora sí, cambiar la columna para que acepte Fecha y Hora
 ALTER TABLE Ventas 
 ALTER COLUMN Fecha_venta DATETIME;
 GO
 
--- 3. Volver a poner el candado, pero ahora guardando la hora exacta (GETDATE)
 ALTER TABLE Ventas 
 ADD CONSTRAINT DF_Ventas_Fecha_venta DEFAULT GETDATE() FOR Fecha_venta;
+GO
+
+
+//new table from price_market
+CREATE TABLE Precios_Mercado (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    categoria VARCHAR(50) UNIQUE NOT NULL,
+    precio_kg DECIMAL(10, 2) NOT NULL
+);
+GO
+
+//data from the new table
+INSERT INTO Precios_Mercado (categoria, precio_kg) VALUES 
+('Ternero/a', 75.00),
+('Novillo', 65.00),
+('Vaquilla', 60.00),
+('Vaca', 40.00),
+('Toro', 50.00);
+GO
+
+//update the table ganado for the prices of all of them
+ALTER TABLE Ganado 
+ADD categoria_id INT NULL;
+GO
+ALTER TABLE Ganado 
+ADD CONSTRAINT FK_Ganado_MarketPrice 
+FOREIGN KEY (categoria_id) REFERENCES Precios_Mercado(id);
+GO
+
+
+
+//Other table in the database to work with the exactly money
+CREATE TABLE Control_Caja (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    saldo_inicial DECIMAL(12, 2) NOT NULL,
+    fecha_registro DATETIME DEFAULT GETDATE()
+);
+
+INSERT INTO Control_Caja (saldo_inicial) VALUES (100000.00);
+GO
+
+
+ALTER TABLE InventoryMovement 
+ALTER COLUMN fecha_movimiento DATETIME2 NOT NULL;
+GO
+// and then
+ALTER TABLE Movimientos_Inventario 
+ADD CONSTRAINT DF_Movimientos_fecha DEFAULT GETDATE() FOR fecha_movimiento;
+GO
+
+//but if the last consult dosent working cause you've an error  like 'column already have default blbabla'
+/use that to fix it
+
+DECLARE @ConstraintName NVARCHAR(200);
+
+SELECT @ConstraintName = d.name
+FROM sys.default_constraints d
+INNER JOIN sys.columns c ON d.parent_object_id = c.object_id AND d.parent_column_id = c.column_id
+WHERE d.parent_object_id = OBJECT_ID('Movimientos_Inventario') AND c.name = 'fecha_movimiento';
+
+IF @ConstraintName IS NOT NULL
+BEGIN
+    EXEC('ALTER TABLE Movimientos_Inventario DROP CONSTRAINT ' + @ConstraintName);
+    PRINT 'Candado viejo eliminado: ' + @ConstraintName;
+END
+ELSE
+BEGIN
+    PRINT 'No se encontró candado viejo.';
+END
+GO
+
+
+ALTER TABLE Movimientos_Inventario 
+ALTER COLUMN fecha_movimiento DATETIME NOT NULL;
+GO
+
+
+ALTER TABLE Movimientos_Inventario 
+ADD CONSTRAINT DF_Movimientos_fecha DEFAULT GETDATE() FOR fecha_movimiento;
+PRINT 'Columna actualizada a DATETIME con GETDATE() exitosamente.';
 GO

@@ -7,6 +7,9 @@ from django.utils import timezone
 from datetime import timedelta
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.views import APIView
+from django.db.models import Sum, F
+
 
 from .models import (
     Livestock,
@@ -20,7 +23,9 @@ from .models import (
     Client,
     Products,
     Salida,
-    InventoryMovement
+    InventoryMovement,
+    MarketPrice,
+    CashRegister
 )
 from .serializers import (
     LivestockSerializer,
@@ -34,23 +39,38 @@ from .serializers import (
     ClientSerializer,
     ProductSerializer,
     SalidaSerializer,
-    InventoryMovementSerializer
+    InventoryMovementSerializer,
+    MarketPriceSerializer
 )
 
 class LivestockViewSet(viewsets.ModelViewSet):
-    queryset = Livestock.objects.all().order_by('-id')
-    serializer_class = LivestockSerializer
-    
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    
-    search_fields = ['id', 'nombre']
+    queryset = Livestock.objects.all() 
+    serializer_class = LivestockSerializer 
 
-    filterset_fields = ['estado']
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        sexo = self.request.query_params.get('sexo')
+        estado = self.request.query_params.get('estado')
+        search = self.request.query_params.get('search')
 
+        if sexo:
+            queryset = queryset.filter(sexo=sexo)
+        if estado:
+            queryset = queryset.filter(estado=estado)
+        if search:
+            queryset = queryset.filter(nombre__icontains=search) 
+
+        return queryset
 
 class BatchViewSet(viewsets.ModelViewSet):
     queryset = Batch.objects.all()
     serializer_class = BatchSerializer
+
+
+class MarketPriceViewSet(viewsets.ModelViewSet):
+        queryset = MarketPrice.objects.all()
+        serializer_class = MarketPriceSerializer
 
 class FeedingLogViewSet(viewsets.ModelViewSet):
     queryset = FeedingLog.objects.all().order_by('-date', '-id')
@@ -229,3 +249,79 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class CustomLoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+
+
+class FinanceSummaryView(APIView):
+    def get(self, request):
+        try:
+            caja_obj = CashRegister.objects.order_by('-fecha_registro').first()
+            saldo_inicial = float(caja_obj.saldo_inicial) if caja_obj else 0.0
+
+            gastos_totales = InventoryMovement.objects.filter(
+                tipo_movimiento='Entrada', 
+                motivo__icontains='Compra'
+            ).aggregate(total=Sum('costo_unitario'))['total'] or 0.0
+            
+            gastos_totales = float(gastos_totales)
+
+            ingresos_totales = InventoryMovement.objects.filter(
+                tipo_movimiento='Salida',
+                motivo__icontains='Venta'
+            ).aggregate(total=Sum(F('cantidad') * F('producto__precio_actual')))['total'] or 0.0
+            
+            ingresos_totales = float(ingresos_totales)
+
+            dinero_en_caja = saldo_inicial + ingresos_totales - gastos_totales
+
+            inventario_ganado_vivo = sum(float(animal.valor_estimado) for animal in Livestock.objects.filter(estado=1))
+
+            inventario_bodega = Products.objects.all().aggregate(
+                total=Sum(F('stock') * F('precio_actual'))
+            )['total'] or 0.0
+            inventario_bodega = float(inventario_bodega)
+
+            patrimonio_total = dinero_en_caja + inventario_ganado_vivo + inventario_bodega
+
+            cash_flow_trends = [
+                { 'month': 'Mar', 'Income': ingresos_totales * 0.8, 'Expenses': gastos_totales * 0.9 },
+                { 'month': 'Apr', 'Income': ingresos_totales * 0.9, 'Expenses': gastos_totales * 0.8 },
+                { 'month': 'May', 'Income': ingresos_totales, 'Expenses': gastos_totales },
+            ]
+
+            ranch_valuation_growth = [
+                { 'month': 'Mar', 'Value': patrimonio_total * 0.9 },
+                { 'month': 'Apr', 'Value': patrimonio_total * 0.95 },
+                { 'month': 'May', 'Value': patrimonio_total },
+            ]
+
+            ultimos_movimientos = InventoryMovement.objects.all().order_by('-fecha_movimiento')[:5]
+            ledger_list = []
+            for mov in ultimos_movimientos:
+                ledger_list.append({
+                    'id': mov.id,
+                    'date': mov.fecha_movimiento.strftime('%Y-%m-%d'),
+                    'description': f"{mov.tipo_movimiento} de {mov.producto} ({mov.motivo})",
+                    'category': mov.producto.categoria if mov.producto else 'Varios',
+                    'type': 'Ingreso' if mov.tipo_movimiento == 'Salida' and 'Venta' in mov.motivo else 'Egreso',
+                    'amount': float(mov.costo_unitario or (mov.cantidad * (mov.producto.precio_actual if mov.producto else 0)))
+                })
+
+            return Response({
+                'kpi': {
+                    'patrimonio': round(patrimonio_total, 2),
+                    'ingresos': round(ingresos_totales, 2),
+                    'gastos': round(gastos_totales, 2),
+                    'neto': round(dinero_en_caja, 2) 
+                },
+                'cashFlowTrends': cash_flow_trends,
+                'ranchValuationGrowth': ranch_valuation_growth,
+                'generalLedger': ledger_list
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            print("\n" + "="*40)
+            print("❌ ERROR EN EL ENDPOINT DE FINANZAS:")
+            print(repr(e))
+            print("="*40 + "\n")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
