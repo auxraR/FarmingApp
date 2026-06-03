@@ -17,7 +17,7 @@ export default function LivestockPage() {
   const [formData, setFormData] = useState({
     nombre: '', fecha_nacimiento: '', edad: '', peso: '', raza: '', sexo: 'Hembra',
     id_madre: '', id_padre: '', metodo_obtencion: '', batch: '',
-    categoria: '', valor_manual: '' // ✅ Nuevos campos financieros
+    categoria: '', valor_manual: '' 
   });
 
   const fetchData = async () => {
@@ -48,7 +48,7 @@ export default function LivestockPage() {
   };
 
   const handleEdit = (e, animal) => {
-    e.stopPropagation(); 
+    e.stopPropagation(); // Evita que se abra el modal al hacer clic en editar
     setEditingId(animal.id);
     setFormData({
       nombre: animal.nombre || '',
@@ -61,8 +61,35 @@ export default function LivestockPage() {
       id_padre: animal.id_padre || '',
       metodo_obtencion: animal.metodo_obtencion || '',
       batch: animal.batch || '',
-      categoria: animal.categoria || '', // ID de la categoría
+      categoria: animal.categoria || '', 
       valor_manual: animal.valor_manual || ''
+    });
+  };
+
+  // 🔥 NUEVO: Función para manejar el borrado
+  const handleDelete = async (e, id) => {
+    e.stopPropagation(); // CRÍTICO: Evita que el clic se propague a la fila y abra el CV
+
+    Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete it!'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          // Cambia el estado del animal a 0 (inactivo) o usa el método delete si lo borras físicamente
+          await apiClient.patch(`/livestock/${id}/`, { estado: 0 }); 
+          
+          Swal.fire('Deleted!', 'The animal has been removed.', 'success');
+          fetchData(); // Refresca la tabla
+        } catch (err) {
+          Swal.fire('Error', 'Could not delete the animal.', 'error');
+        }
+      }
     });
   };
 
@@ -106,6 +133,17 @@ export default function LivestockPage() {
     } catch (err) {
       Swal.fire({ title: 'Submission Failed', text: 'Check connection or data.', icon: 'error' });
     }
+  };
+
+  // 🔥 NUEVO: Funciones auxiliares para encontrar los nombres reales basados en los IDs
+  const getBatchName = (batchId) => {
+    const batch = batches.find(b => b.id === batchId);
+    return batch ? batch.name : 'No Group';
+  };
+
+  const getCategoryName = (categoryId) => {
+    const category = categories.find(c => c.id === categoryId);
+    return category ? category.categoria : 'Unassigned';
   };
 
   return (
@@ -161,7 +199,6 @@ export default function LivestockPage() {
                   value={formData.peso} onChange={e => setFormData({...formData, peso: e.target.value})} />
               </div>
 
-              {/* ✅ CAMPO DE VALOR MANUAL (OPCIONAL) */}
               <div className="bg-yellow-50 p-3 rounded-xl border border-yellow-100">
                 <label className="text-[9px] text-yellow-700 uppercase font-black flex items-center gap-1 mb-1">
                   <DollarSign size={10}/> Custom Value (Optional)
@@ -212,8 +249,9 @@ export default function LivestockPage() {
                       <p className="text-[10px] text-gray-400">ID: #{animal.id} • {animal.sexo}</p>
                     </td>
                     <td className="p-4">
-                      <p className="text-xs font-bold text-gray-600 uppercase">{animal.batch_name || 'No Group'}</p>
-                      <span className="text-[9px] bg-blue-50 text-blue-500 px-2 py-0.5 rounded-full font-bold">{animal.categoria_nombre}</span>
+                      {/* 🔥 CORRECCIÓN: Usamos las funciones getBatchName y getCategoryName */}
+                      <p className="text-xs font-bold text-gray-600 uppercase">{getBatchName(animal.batch)}</p>
+                      <span className="text-[9px] bg-blue-50 text-blue-500 px-2 py-0.5 rounded-full font-bold">{getCategoryName(animal.categoria)}</span>
                     </td>
                     <td className="p-4">
                       <p className="text-sm font-black text-[#11131F]">{animal.peso} <span className="text-[9px] text-gray-400">KG</span></p>
@@ -224,6 +262,7 @@ export default function LivestockPage() {
                     <td className="p-4">
                       <div className="flex justify-center gap-2">
                         <button onClick={(e) => handleEdit(e, animal)} className="p-2 hover:bg-blue-50 rounded-lg text-blue-500 transition-all"><Edit2 size={16}/></button>
+                        {/* CRÍTICO: Asegurarse de pasar el evento 'e' a handleDelete */}
                         <button onClick={(e) => handleDelete(e, animal.id)} className="p-2 hover:bg-red-50 rounded-lg text-red-500 transition-all"><Trash2 size={16}/></button>
                       </div>
                     </td>
@@ -235,7 +274,7 @@ export default function LivestockPage() {
         </div>
       </div>
 
-      {/* ANIMAL CV MODAL - VERSIÓN CLARA Y PROFESIONAL */}
+      {/* ANIMAL CV MODAL */}
       {isModalOpen && selectedAnimal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white border border-black/10 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row">
@@ -257,7 +296,7 @@ export default function LivestockPage() {
               <div className="grid grid-cols-2 gap-y-6 gap-x-4">
                 <div>
                   <p className="text-[9px] text-gray-400 uppercase font-black tracking-widest flex items-center gap-1"><Tag size={10}/> Category</p>
-                  <p className="text-sm text-[#11131F] font-bold mt-1">{selectedAnimal.categoria_nombre}</p>
+                  <p className="text-sm text-[#11131F] font-bold mt-1">{getCategoryName(selectedAnimal.categoria)}</p>
                 </div>
                 <div>
                   <p className="text-[9px] text-gray-400 uppercase font-black tracking-widest flex items-center gap-1"><DollarSign size={10}/> Market Value</p>
@@ -269,7 +308,7 @@ export default function LivestockPage() {
                 </div>
                 <div>
                   <p className="text-[9px] text-gray-400 uppercase font-black tracking-widest">Batch / Group</p>
-                  <p className="text-sm text-[#11131F] font-bold mt-1">{selectedAnimal.batch_name || 'Unassigned'}</p>
+                  <p className="text-sm text-[#11131F] font-bold mt-1">{getBatchName(selectedAnimal.batch)}</p>
                 </div>
                 
                 <div className="col-span-2 bg-[#f8f9fa] p-4 rounded-2xl border border-black/5 mt-2">

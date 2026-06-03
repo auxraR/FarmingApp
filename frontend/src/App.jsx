@@ -11,6 +11,7 @@ import Dashboard from "./components/dashboard";
 import Login from "./components/Login";
 import SettingsPage from "./components/Settings";
 import FinancesPage from "./components/Finances";
+import ReportsPage from "./components/Reports";
 
 
 const PrivateRoute = ({ allowedRoles }) => {
@@ -52,6 +53,7 @@ function App() {
           <Route path="*" element={<div className="p-6">Page not found</div>} />
           <Route path="/settings" element= {<SettingsPage />} />
           <Route path="/finances" element= {<FinancesPage />} />
+          <Route path="/reports" element= {<ReportsPage />} />
         </Route>
 
         {/* RUTAS EXCLUSIVAS (Solo Gerente) */}

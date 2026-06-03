@@ -17,9 +17,32 @@ from .models import (
 )
 
 class LivestockSerializer(serializers.ModelSerializer):
+    valor_estimado = serializers.SerializerMethodField()
+    batch_name = serializers.SerializerMethodField()
+    categoria_nombre = serializers.SerializerMethodField()
+
     class Meta:
         model = Livestock
         fields = '__all__' 
+    def get_valor_estimado(self, obj):
+        if getattr(obj, 'valor_manual', None):
+            return float(obj.valor_manual)
+        if getattr(obj, 'peso', None) and getattr(obj, 'categoria', None):
+            precio_kilo = float(getattr(obj.categoria, 'precio', getattr(obj.categoria, 'precio_kg', 0)))
+            resultado = float(obj.peso) * precio_kilo
+            return "{:,.2f}".format(resultado)
+            
+        return 0.0
+
+    def get_batch_name(self, obj):
+        if getattr(obj, 'batch', None):
+            return getattr(obj.batch, 'name', 'No Group')
+        return 'No Group'
+
+    def get_categoria_nombre(self, obj):
+        if getattr(obj, 'categoria', None):
+            return getattr(obj.categoria, 'categoria', 'Unassigned')
+        return 'Unassigned'
 
 class MarketPriceSerializer(serializers.ModelSerializer):
     class Meta:

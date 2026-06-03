@@ -157,18 +157,17 @@ const ProductionPage = () => {
     }
   };
 
-  // 🔥 LÓGICA DE FILTRADO, ORDENAMIENTO Y LÍMITE (Últimos 7)
   const filteredRecords = productionRecords
     .filter((rec) => {
       const q = searchTerm.trim().toLowerCase();
       if (!q) return true;
       const name = (rec.animal_name || '').toString().toLowerCase();
       const id = (rec.animal ?? '').toString().toLowerCase();
-      const dateStr = (rec.date || '').toString().toLowerCase(); // Se incluye la fecha en la búsqueda
+      const dateStr = (rec.date || '').toString().toLowerCase(); 
       return name.includes(q) || id.includes(q) || dateStr.includes(q);
     })
-    .sort((a, b) => new Date(b.date) - new Date(a.date)) // Del más reciente al más antiguo
-    .slice(0, 7); // Solo 7 registros
+    .sort((a, b) => new Date(b.date) - new Date(a.date)) 
+    .slice(0, 7); 
 
   if (isLoading) return <div className="flex-1 p-8 bg-[#F4F6F8] text-center mt-20">Loading...</div>;
 

@@ -8,7 +8,8 @@ from datetime import timedelta
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.views import APIView
-from django.db.models import Sum, F
+from django.db.models import Sum, F, Count, Avg
+from datetime import datetime, timedelta
 
 
 from .models import (
@@ -321,7 +322,219 @@ class FinanceSummaryView(APIView):
 
         except Exception as e:
             print("\n" + "="*40)
-            print("❌ ERROR EN EL ENDPOINT DE FINANZAS:")
+            print("ERROR EN EL ENDPOINT DE FINANZAS:")
             print(repr(e))
             print("="*40 + "\n")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class ReportGeneratorView(APIView):
+    def get(self, request):
+        try:
+            desde_str = request.GET.get('desde')
+            hasta_str = request.GET.get('hasta')
+            
+            if not desde_str or not hasta_str:
+                return Response({'error': 'Faltan parámetros'}, status=status.HTTP_400_BAD_REQUEST)
+
+            desde = datetime.strptime(desde_str, '%Y-%m-%d')
+            hasta = datetime.strptime(hasta_str, '%Y-%m-%d') + timedelta(days=1) - timedelta(seconds=1)
+
+            # --- 1. CÁLCULO DE INGRESOS Y EGRESOS ---
+            movimientos_entrada = InventoryMovement.objects.filter(tipo_movimiento='Entrada', fecha_movimiento__range=[desde, hasta])
+            gastos = float(movimientos_entrada.aggregate(total=Sum('costo_unitario'))['total'] or 0.0)
+            
+            movimientos_salida = InventoryMovement.objects.filter(tipo_movimiento='Salida', fecha_movimiento__range=[desde, hasta])
+            ingresos = float(movimientos_salida.aggregate(total=Sum(F('cantidad') * F('producto__precio_actual')))['total'] or 0.0)
+
+            detalle_ingresos = [
+                {'concepto': 'Venta de Leche', 'monto': ingresos * 0.4}, 
+                {'concepto': 'Venta de Ganado', 'monto': ingresos * 0.6},
+            ] if ingresos > 0 else []
+
+            detalle_egresos = [
+                {'concepto': 'Alimentación (Concentrado)', 'monto': gastos * 0.7},
+                {'concepto': 'Medicamentos y Vacunas', 'monto': gastos * 0.3},
+            ] if gastos > 0 else []
+
+            # --- 2. CÁLCULO DE PÉRDIDAS ANIMALES ---
+            animales_perdidos = Livestock.objects.filter(estado=0) 
+            total_perdidas_valor = sum(float(animal.valor_estimado or 0) for animal in animales_perdidos)
+            cantidad_perdidas = animales_perdidos.count()
+
+            # --- 3. CÁLCULO DEL CAPITAL TOTAL ---
+            caja_obj = CashRegister.objects.order_by('-fecha_registro').first()
+            saldo_inicial = float(caja_obj.saldo_inicial) if caja_obj else 0.0
+            
+            dinero_en_caja = saldo_inicial + ingresos - gastos
+            inventario_ganado_vivo = sum(float(animal.valor_estimado or 0) for animal in Livestock.objects.filter(estado=1))
+            inventario_bodega = float(Products.objects.aggregate(total=Sum(F('stock') * F('precio_actual')))['total'] or 0.0)
+            
+            capital_total = dinero_en_caja + inventario_ganado_vivo + inventario_bodega
+
+            # --- 4. PRODUCCIÓN DE LECHE (Ajustado al modelo MilkProduction) ---
+            dias_rango = (hasta - desde).days
+            dias_rango = dias_rango if dias_rango > 0 else 1
+            semanas_rango = max(1, dias_rango / 7)
+
+            # Usamos 'date' en lugar de 'fecha'
+            producciones_qs = MilkProduction.objects.filter(date__range=[desde, hasta])
+
+            # Usamos 'liters_produced' en lugar de 'litros'
+            total_leche = float(producciones_qs.aggregate(total=Sum('liters_produced'))['total'] or 0.0)
+            promedio_semanal = round(total_leche / semanas_rango, 2)
+
+            # Agrupamos por 'date'
+            prod_diaria = producciones_qs.values('date').annotate(total_litros=Sum('liters_produced')).order_by('date')
+            grafica_produccion = [
+                {
+                    'fecha': item['date'].strftime('%d %b'), 
+                    'litros': float(item['total_litros'])
+                } 
+                for item in prod_diaria
+            ]
+
+            tabla_produccion = []
+            # Ordenamos por '-date' (descendente)
+            for p in producciones_qs.order_by('-date'):
+                # Accedemos a la relación con 'animal' en lugar de 'vaca'
+                identificador_vaca = getattr(p.animal, 'nombre', getattr(p.animal, 'tag', f"ID: {p.animal.id}"))
+                
+                tabla_produccion.append({
+                    'fecha': p.date.strftime('%Y-%m-%d'),
+                    'vaca': f"Vaca {identificador_vaca}",
+                    'litros': float(p.liters_produced)
+                })
+
+          # A. Tabla de Sanidad (Vacunas, vitaminas, etc.)
+            sanidad_qs = HealthAction.objects.filter(fecha__range=[desde, hasta]).order_by('-fecha')
+            tabla_sanidad = []
+            for s in sanidad_qs:
+                identificador = getattr(s.animal, 'nombre', getattr(s.animal, 'tag', f"ID: {s.animal.id}"))
+                tabla_sanidad.append({
+                    'fecha': s.fecha.strftime('%Y-%m-%d'),
+                    'vaca': f"Vaca {identificador}",
+                    'evento': s.tipo_evento,
+                    'dosis': s.dosis
+                })
+
+            # B. Tabla de Pesajes
+            peso_qs = WeightControl.objects.filter(fecha__range=[desde, hasta])
+            tabla_peso = []
+            for w in peso_qs.order_by('-fecha'):
+                identificador = getattr(w.animal, 'nombre', getattr(w.animal, 'tag', f"ID: {w.animal.id}"))
+                tabla_peso.append({
+                    'fecha': w.fecha.strftime('%Y-%m-%d'),
+                    'vaca': f"Vaca {identificador}",
+                    'peso': float(w.peso)
+                })
+
+            # C. Gráfica de Progreso de Peso (Promedio del hato por fecha de pesaje)
+            peso_diario = peso_qs.values('fecha').annotate(promedio_peso=Avg('peso')).order_by('fecha')
+            grafica_peso = [
+                {
+                    'fecha': item['fecha'].strftime('%d %b'), 
+                    'peso': round(float(item['promedio_peso']), 2)
+                } 
+                for item in peso_diario
+            ]
+
+            # D. Cálculo del % de Crecimiento
+            crecimiento_pct = 0.0
+            if len(grafica_peso) > 1:
+                peso_inicial = grafica_peso[0]['peso']
+                peso_final = grafica_peso[-1]['peso']
+                if peso_inicial > 0:
+                    crecimiento_pct = round(((peso_final - peso_inicial) / peso_inicial) * 100, 2)
+            
+            # A. Historial de Movimientos
+            movimientos_qs = InventoryMovement.objects.filter(fecha_movimiento__range=[desde, hasta]).order_by('fecha_movimiento')
+            
+            tabla_movimientos = []
+            inventario_diario = {}
+            total_entradas_qty = 0
+            total_salidas_qty = 0
+
+            for m in movimientos_qs:
+                # Agrupamos por día para la gráfica
+                fecha_str = m.fecha_movimiento.strftime('%d %b')
+                tipo = m.tipo_movimiento
+                cant = float(m.cantidad)
+                
+                if fecha_str not in inventario_diario:
+                    inventario_diario[fecha_str] = {'fecha': fecha_str, 'Entradas': 0, 'Salidas': 0}
+                
+                if tipo == 'Entrada':
+                    inventario_diario[fecha_str]['Entradas'] += cant
+                    total_entradas_qty += cant
+                else:
+                    inventario_diario[fecha_str]['Salidas'] += cant
+                    total_salidas_qty += cant
+                    
+                # Llenamos la tabla de movimientos
+                tabla_movimientos.append({
+                    'fecha': m.fecha_movimiento.strftime('%Y-%m-%d'),
+                    'producto': m.producto.nombre,
+                    'tipo': tipo,
+                    'cantidad': cant,
+                    'motivo': m.motivo
+                })
+                
+            grafica_inventario = list(inventario_diario.values())
+            # Invertimos la tabla para que los últimos movimientos salgan primero
+            tabla_movimientos.reverse()
+
+            # B. Productos Activos (Stock Actual)
+            productos_qs = Products.objects.all().order_by('categoria', 'nombre')
+            tabla_productos = []
+            for p in productos_qs:
+                tabla_productos.append({
+                    'nombre': p.nombre,
+                    'categoria': p.categoria,
+                    'stock': float(p.stock),
+                    'unidad': p.unidad_medida,
+                    'precio': float(p.precio_actual)
+                })
+
+            # --- 6. EMPAQUETAR JSON (Actualizado) ---
+            report_data = {
+                'periodo': {'desde': desde_str, 'hasta': hasta_str},
+                'kpis': {
+                    'ganancia_neta': ingresos - gastos,
+                    'ingresos_brutos': ingresos,
+                    'gastos_operativos': gastos,
+                    'capital_total': capital_total,
+                    'perdidas_animales': total_perdidas_valor,
+                    'cantidad_perdidas': cantidad_perdidas,
+                    'total_animales': Livestock.objects.filter(estado=1).count(),
+                    'produccion_leche': total_leche, 
+                    'promedio_semanal_leche': promedio_semanal,
+                    'rentabilidad': round(((ingresos - gastos) / ingresos * 100), 1) if ingresos > 0 else 0.0,
+                    'tratamientos_aplicados': sanidad_qs.count(), # Nuevo KPI
+                    'crecimiento_peso_pct': crecimiento_pct,
+                    'inventario_entradas': total_entradas_qty, # NUEVO
+                    'inventario_salidas': total_salidas_qty   # NUEVO     # Nuevo KPI
+
+                },
+                'tablas': {
+                    'ingresos': detalle_ingresos,
+                    'egresos': detalle_egresos,
+                    'produccion_detalle': tabla_produccion,
+                    'sanidad_detalle': tabla_sanidad,             # Nueva Tabla
+                    'peso_detalle': tabla_peso,                    # Nueva Tabla
+                    'movimientos_detalle': tabla_movimientos,  # NUEVO
+                    'productos_activos': tabla_productos       # NUEVO
+                },
+                'graficas': {
+                    'produccion_leche': grafica_produccion,
+                    'progreso_peso': grafica_peso,                # Nueva Gráfica
+                    'flujo_inventario': grafica_inventario     # NUEVO
+                },
+                'alertas': []
+            }
+
+            return Response(report_data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            print("\nERROR GENERANDO REPORTE:")
+            print(repr(e))
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

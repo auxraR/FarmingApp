@@ -16,7 +16,8 @@ from api.views import (
     SalidaViewSet,
     InventoryMovementViewSet,
     MarketPriceViewSet,
-    FinanceSummaryView
+    FinanceSummaryView,
+    ReportGeneratorView
 )
 
 router = DefaultRouter()
@@ -36,6 +37,7 @@ router.register(r'precios-mercado', MarketPriceViewSet, basename='precios-mercad
 
 urlpatterns = [
     path('api/login/', CustomLoginView.as_view(), name='login'),
+    path('api/reports/generate/', ReportGeneratorView.as_view(), name='report-generate'),
     path('api/finances/', FinanceSummaryView.as_view(), name='finances-summary'),
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
