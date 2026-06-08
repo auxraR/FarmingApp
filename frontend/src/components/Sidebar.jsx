@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import Swal from 'sweetalert2';
+
 import {
   LayoutDashboard,
   Beef,
@@ -14,7 +16,9 @@ import {
   ChartSpline,
   Boxes,
   DoorOpen,
+  LogOut
 } from "lucide-react";
+
 import { cn } from "./ui/utils";
 
 const menuItems = [
@@ -44,6 +48,24 @@ export default function Sidebar() {
     }
     return true; 
   });
+
+  const handleLogout = () => {
+    Swal.fire({
+      title: '¿Cerrar sesión?',
+      text: "Tendrás que volver a ingresar tus credenciales.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#DC2626',
+      cancelButtonColor: '#6B7280',
+      confirmButtonText: 'Sí, salir'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        localStorage.removeItem('token'); 
+        sessionStorage.clear();
+        window.location.href = '/login'; 
+      }
+    });
+  };
 
   return (
     <aside
@@ -109,21 +131,11 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* User Profile Section */}
-      <div
-        className={cn(
-          "p-4 border-t border-white/5 bg-black/20 flex-shrink-0 cursor-pointer hover:bg-black/40 transition-colors",
-          isCollapsed && "flex justify-center",
-        )}
-        onClick={() => {
-          // Opcional: Un pequeño botón/acción para cerrar sesión
-          if(window.confirm('¿Cerrar sesión?')) {
-            localStorage.clear();
-            window.location.href = '/login';
-          }
-        }}
-      >
-        <div className="flex items-center space-x-3">
+      {/* User Profile & Logout Section */}
+      <div className="p-4 border-t border-white/5 bg-black/20 flex flex-col gap-4">
+        
+        {/* Profile Info */}
+        <div className={cn("flex items-center space-x-3", isCollapsed && "justify-center")}>
           <div className="w-10 h-10 rounded-full bg-ganadero-active flex-shrink-0 flex items-center justify-center text-black font-black">
             {isManager ? 'GE' : 'CA'}
           </div>
@@ -138,6 +150,20 @@ export default function Sidebar() {
             </div>
           )}
         </div>
+
+        {/* Logout Button */}
+        <button 
+          onClick={handleLogout}
+          title={isCollapsed ? "Cerrar Sesión" : ""}
+          className={cn(
+            "w-full flex items-center gap-3 p-2 text-gray-400 hover:bg-red-500/10 hover:text-red-400 rounded-xl font-bold transition-all",
+            isCollapsed ? "justify-center" : "justify-start px-3"
+          )}
+        >
+          <LogOut size={20} className={isCollapsed ? "" : "min-w-[20px]"} />
+          {!isCollapsed && <span className="text-sm">Cerrar Sesión</span>}
+        </button>
+
       </div>
     </aside>
   );

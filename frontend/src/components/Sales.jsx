@@ -32,20 +32,20 @@ const SalesPage = () => {
       setProducts(ProductsToSend); 
       setLivestock(livestockRes.data);
     } catch (err) {
-      console.error("Error cargando datos para ventas", err);
+      console.error("Error loading sales data", err);
     }
   };
 
   const handleAddToCart = () => {
     const effectiveQuantity = itemType === 'Ganado' ? 1 : parseFloat(quantity);
     if (!selectedItem || !effectiveQuantity || effectiveQuantity <= 0) {
-      Swal.fire({ icon: 'warning', title: 'Oops...', text: 'Please select an item and a valid quantity.' });
+      Swal.fire({ icon: 'warning', title: 'Oops...', text: 'Please select an item and a valid quantity.', confirmButtonColor: '#2563EB' });
       return;
     }
 
     const overrideNum = priceOverride === '' ? null : Number(priceOverride);
     if (overrideNum !== null && (!Number.isFinite(overrideNum) || overrideNum < 0)) {
-      Swal.fire({ icon: 'error', title: 'Invalid Price', text: 'Unit price cannot be negative.' });
+      Swal.fire({ icon: 'error', title: 'Invalid Price', text: 'Unit price cannot be negative.', confirmButtonColor: '#2563EB' });
       return;
     }
 
@@ -68,7 +68,7 @@ const SalesPage = () => {
             ? `You already have ${cantidadEnCarrito} in the cart. Adding ${effectiveQuantity} more exceeds the ${prod.stock} ${prod.unidad_medida} available.`
             : `Cannot sell ${effectiveQuantity}. Only ${prod.stock} ${prod.unidad_medida} available.`,
           icon: 'error',
-          confirmButtonColor: '#000000'
+          confirmButtonColor: '#2563EB'
         });
         return; 
       }
@@ -82,7 +82,7 @@ const SalesPage = () => {
     } else {
       const animal = livestock.find(a => a.id.toString() === selectedItem);
       if (!finalPrice) {
-        Swal.fire({ icon: 'warning', title: 'Missing Price', text: 'Please enter the agreed sale price for this animal.' });
+        Swal.fire({ icon: 'warning', title: 'Missing Price', text: 'Please enter the agreed sale price for this animal.', confirmButtonColor: '#2563EB' });
         return;
       }
       itemDetails = {
@@ -93,7 +93,7 @@ const SalesPage = () => {
     }
 
     if (!Number.isFinite(finalPrice) || finalPrice < 0) {
-      Swal.fire({ icon: 'error', title: 'Invalid Price', text: 'Unit price cannot be negative.' });
+      Swal.fire({ icon: 'error', title: 'Invalid Price', text: 'Unit price cannot be negative.', confirmButtonColor: '#2563EB' });
       return;
     }
 
@@ -125,11 +125,11 @@ const SalesPage = () => {
 
   const handleCheckout = async () => {
     if (!selectedClient) {
-      Swal.fire({ icon: 'error', title: 'Missing Client', text: 'Please select a client for this sale.' });
+      Swal.fire({ icon: 'error', title: 'Missing Client', text: 'Please select a client for this sale.', confirmButtonColor: '#2563EB' });
       return;
     }
     if (cart.length === 0) {
-      Swal.fire({ icon: 'error', title: 'Empty Cart', text: 'Add at least one item to the sale.' });
+      Swal.fire({ icon: 'error', title: 'Empty Cart', text: 'Add at least one item to the sale.', confirmButtonColor: '#2563EB' });
       return;
     }
 
@@ -153,31 +153,37 @@ const SalesPage = () => {
       fetchInitialData(); 
     } catch (err) {
       console.error(err);
-      Swal.fire({ icon: 'error', title: 'Error', text: 'Could not complete the sale.' });
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Could not complete the sale.', confirmButtonColor: '#2563EB' });
     }
   };
 
   return (
-    <div className="flex-1 bg-[#F4F6F8] min-h-screen p-8 mt-[0px]">
-      <div className="flex items-center justify-between mb-8 pb-4 border-b border-[#E0E0E0]">
-        <h1 className="text-3xl font-bold text-[#11131F] flex items-center gap-3">
-          <ShoppingCart className="text-[#11131F]" size={28} />
-          Point of Sale
-        </h1>
+    <div className="flex-1 bg-[#F5F4F0] min-h-screen p-4 text-stone-800">
+      
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-green-900 flex items-center gap-3">
+            Point of Sale
+          </h1>
+          <p className="text-sm text-amber-900 font-semibold mt-1">Manage farm sales and transactions</p>
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
         
+        {/* LEFT COLUMN: FORM */}
         <div className="lg:w-2/3 space-y-6">
           
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#EBEBEB]">
-            <h2 className="text-lg font-bold text-black flex items-center gap-2 mb-4">
-              <User size={20} className="text-[#8C92AC]" /> 1. Select Client
+          {/* CLIENT SELECTOR */}
+          <div className="bg-white p-6 rounded-3xl shadow-lg shadow-stone-500/5 border border-stone-200 relative">
+            <h2 className="text-xl font-black text-green-900 flex items-center gap-2 mb-5">
+              <User size={22} className="text-amber-800" /> 1. Select Client
             </h2>
             <select 
               value={selectedClient} 
               onChange={(e) => setSelectedClient(e.target.value)}
-              className="w-full p-3 bg-[#F4F6F8] rounded-xl text-black border border-[#E0E0E0] focus:ring-1 focus:ring-[#11131F]"
+              className="w-full p-3.5 bg-stone-50 rounded-xl text-stone-800 font-semibold border border-stone-200 focus:ring-4 focus:ring-green-800/10 focus:border-green-800 outline-none transition-all"
             >
               <option value="">-- Choose a Client --</option>
               {clients.map(c => (
@@ -186,27 +192,28 @@ const SalesPage = () => {
             </select>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#EBEBEB]">
-            <h2 className="text-lg font-bold text-black flex items-center gap-2 mb-4">
-              <Package size={20} className="text-[#8C92AC]" /> 2. Add Item to Cart
+          {/* ITEM SELECTOR */}
+          <div className="bg-white p-6 rounded-3xl shadow-lg shadow-stone-500/5 border border-stone-200 relative">
+            <h2 className="text-xl font-black text-green-900 flex items-center gap-2 mb-6">
+              <Package size={22} className="text-amber-800" /> 2. Add Item to Cart
             </h2>
             
-            <div className="flex gap-4 mb-6">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="itemType" checked={itemType === 'Producto'} onChange={() => {setItemType('Producto'); setSelectedItem('');}} className="accent-black w-4 h-4" />
-                <span className="text-sm font-semibold text-black">Product (Milk, Cheese)</span>
+            <div className="flex gap-6 mb-6 bg-[#FAF8F5] p-4 rounded-2xl border border-stone-200">
+              <label className="flex items-center gap-2.5 cursor-pointer">
+                <input type="radio" name="itemType" checked={itemType === 'Producto'} onChange={() => {setItemType('Producto'); setSelectedItem('');}} className="accent-green-800 w-4 h-4" />
+                <span className="text-sm font-black text-stone-800">Farm Product (Milk, Cheese)</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="itemType" checked={itemType === 'Ganado'} onChange={() => {setItemType('Ganado'); setSelectedItem(''); setQuantity('1');}} className="accent-black w-4 h-4" />
-                <span className="text-sm font-semibold text-black">Livestock (Animal)</span>
+              <label className="flex items-center gap-2.5 cursor-pointer">
+                <input type="radio" name="itemType" checked={itemType === 'Ganado'} onChange={() => {setItemType('Ganado'); setSelectedItem(''); setQuantity('1');}} className="accent-green-800 w-4 h-4" />
+                <span className="text-sm font-black text-stone-800">Livestock (Animal)</span>
               </label>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
               <div className="md:col-span-2">
-                <label className="block text-xs font-semibold text-[#8C92AC] mb-1 uppercase tracking-wider">Select Item</label>
-                <select value={selectedItem} onChange={(e) => setSelectedItem(e.target.value)} className="w-full p-3 bg-[#F4F6F8] rounded-xl text-black border border-[#E0E0E0]">
-                  <option value="">-- Select --</option>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-amber-900 mb-1.5 ml-1">Select Item</label>
+                <select value={selectedItem} onChange={(e) => setSelectedItem(e.target.value)} className="w-full p-3.5 bg-stone-50 rounded-xl text-stone-800 font-semibold border border-stone-200 focus:ring-4 focus:ring-green-800/10 focus:border-green-800 outline-none transition-all">
+                  <option value="">-- Select from Inventory --</option>
                   {itemType === 'Producto' 
                     ? products.map(p => <option key={p.id} value={p.id}>{p.nombre} (Stock: {p.stock} {p.unidad_medida})</option>)
                     : livestock.map(l => <option key={l.id} value={l.id}>{l.nombre || `ID #${l.id}`} - {l.raza}</option>)
@@ -215,7 +222,7 @@ const SalesPage = () => {
               </div>
               
               <div>
-                <label className="block text-xs font-semibold text-[#8C92AC] mb-1 uppercase tracking-wider">Quantity</label>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-amber-900 mb-1.5 ml-1">Quantity</label>
                 <input
                   type="number"
                   step={itemType === 'Producto' ? '0.01' : '1'}
@@ -223,43 +230,46 @@ const SalesPage = () => {
                   value={itemType === 'Ganado' ? '1' : quantity}
                   disabled={itemType === 'Ganado'}
                   onChange={(e) => setQuantity(e.target.value)}
-                  placeholder={itemType === 'Producto' ? "Liters/Kg" : "1"}
-                  className="w-full p-3 bg-[#F4F6F8] rounded-xl text-black border border-[#E0E0E0] disabled:opacity-60 disabled:cursor-not-allowed"
+                  placeholder={itemType === 'Producto' ? "Liters / Kg" : "1"}
+                  className="w-full p-3.5 bg-stone-50 rounded-xl text-stone-800 font-bold border border-stone-200 focus:ring-4 focus:ring-green-800/10 focus:border-green-800 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#8C92AC] mb-1 uppercase tracking-wider">Unit Price (C$)</label>
-                <input type="number" step="0.01" min="0" value={priceOverride} onChange={(e) => setPriceOverride(e.target.value)} placeholder="Leave blank for default" className="w-full p-3 bg-[#F4F6F8] rounded-xl text-black border border-[#E0E0E0]" />
+                <label className="block text-[10px] font-black uppercase tracking-widest text-amber-900 mb-1.5 ml-1">Unit Price (C$)</label>
+                <input type="number" step="0.01" min="0" value={priceOverride} onChange={(e) => setPriceOverride(e.target.value)} placeholder="Leave blank for default" className="w-full p-3.5 bg-stone-50 rounded-xl text-stone-800 font-bold border border-stone-200 focus:ring-4 focus:ring-green-800/10 focus:border-green-800 outline-none transition-all" />
               </div>
             </div>
 
-            <button onClick={handleAddToCart} className="w-full mt-2 py-3 bg-[#F4F6F8] text-black font-bold rounded-xl border border-[#E0E0E0] hover:bg-[#EBEBEB] transition flex items-center justify-center gap-2">
-              <Plus size={18} /> Add to Order
+            <button onClick={handleAddToCart} className="w-full mt-4 py-4 bg-blue-600 text-white font-black rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2">
+              <Plus size={18} strokeWidth={2.5} /> Add to Order
             </button>
           </div>
         </div>
 
+        {/* RIGHT COLUMN: CART & RECEIPT */}
         <div className="lg:w-1/3">
-          <div className="bg-white p-6 rounded-3xl shadow-lg border-2 border-black flex flex-col h-full sticky top-24">
-            <h2 className="text-2xl font-extrabold text-black flex items-center gap-2 mb-6 pb-4 border-b-2 border-dashed border-[#E0E0E0]">
-              <Receipt size={24} /> Current Order
+          <div className="bg-white p-6 rounded-3xl shadow-lg shadow-stone-500/5 border border-stone-200 flex flex-col h-full sticky top-24">
+            <h2 className="text-2xl font-black text-green-900 flex items-center gap-2 mb-6 pb-4 border-b-2 border-dashed border-stone-200">
+              <Receipt size={24} className="text-amber-800" /> Current Order
             </h2>
 
-            <div className="flex-1 overflow-y-auto mb-6 space-y-4">
+            <div className="flex-1 overflow-y-auto mb-6 space-y-3">
               {cart.length === 0 ? (
-                <p className="text-center text-[#8C92AC] mt-10 italic">The cart is empty.</p>
+                <p className="text-center text-stone-400 mt-10 font-semibold">The cart is currently empty.</p>
               ) : (
                 cart.map((item) => (
-                  <div key={item.cartId} className="flex justify-between items-start p-3 bg-[#F9FAFB] rounded-xl border border-[#EBEBEB]">
+                  <div key={item.cartId} className="flex justify-between items-center p-4 bg-[#FAF8F5] rounded-2xl border border-stone-200">
                     <div>
-                      <p className="font-bold text-black text-sm">{item.name}</p>
-                      <p className="text-xs text-[#8C92AC] mt-0.5">{item.quantity} {item.unit} x C$ {item.price.toFixed(2)}</p>
+                      <p className="font-black text-green-900 text-sm">{item.name}</p>
+                      <p className="text-xs font-bold text-stone-500 mt-1">
+                        {item.quantity} {item.unit} <span className="mx-1">x</span> C$ {item.price.toFixed(2)}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="font-bold text-black text-sm">C$ {item.subtotal.toFixed(2)}</span>
-                      <button onClick={() => removeFromCart(item.cartId)} className="text-[#EF4444] hover:text-black transition">
-                        <Trash2 size={16} />
+                    <div className="flex items-center gap-4">
+                      <span className="font-black text-stone-800 text-sm">C$ {item.subtotal.toFixed(2)}</span>
+                      <button onClick={() => removeFromCart(item.cartId)} className="p-2 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg transition-colors">
+                        <Trash2 size={16} strokeWidth={2.5} />
                       </button>
                     </div>
                   </div>
@@ -267,14 +277,14 @@ const SalesPage = () => {
               )}
             </div>
 
-            <div className="mt-auto pt-4 border-t-2 border-dashed border-[#E0E0E0]">
-              <div className="flex justify-between items-center mb-6">
-                <span className="text-lg font-bold text-[#8C92AC]">TOTAL</span>
-                <span className="text-4xl font-black text-black tracking-tight">C$ {cartTotal.toFixed(2)}</span>
+            <div className="mt-auto pt-5 border-t-2 border-dashed border-stone-200">
+              <div className="flex justify-between items-end mb-6">
+                <span className="text-sm font-black uppercase tracking-widest text-amber-900">Total</span>
+                <span className="text-4xl font-black text-green-900 tracking-tight">C$ {cartTotal.toFixed(2)}</span>
               </div>
               <button 
                 onClick={handleCheckout}
-                className="w-full py-4 bg-black text-white text-lg font-bold rounded-2xl hover:bg-[#222222] transition shadow-md"
+                className="w-full py-4 bg-blue-600 text-white text-lg font-black rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/30 flex items-center justify-center"
               >
                 Complete Sale
               </button>

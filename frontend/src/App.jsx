@@ -12,6 +12,8 @@ import Login from "./components/Login";
 import SettingsPage from "./components/Settings";
 import FinancesPage from "./components/Finances";
 import ReportsPage from "./components/Reports";
+import { ChatBotFinca } from "./components/ChatBot";
+import ChatBubble from "./components/chat";
 
 
 const PrivateRoute = ({ allowedRoles }) => {
@@ -28,6 +30,7 @@ const PrivateRoute = ({ allowedRoles }) => {
   return (
     <div className="flex min-h-screen bg-[#fff] text-black-700">
       <Sidebar /> 
+      <ChatBubble/>
       <main className="flex-1 p-8 overflow-y-auto">
         <Outlet />
       </main>
@@ -54,6 +57,7 @@ function App() {
           <Route path="/settings" element= {<SettingsPage />} />
           <Route path="/finances" element= {<FinancesPage />} />
           <Route path="/reports" element= {<ReportsPage />} />
+           <Route path="/chat" element= {<ChatBotFinca />} />
         </Route>
 
         {/* RUTAS EXCLUSIVAS (Solo Gerente) */}

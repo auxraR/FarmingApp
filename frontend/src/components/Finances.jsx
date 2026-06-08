@@ -5,7 +5,6 @@ import { DollarSign, TrendingUp, TrendingDown, Wallet, PieChart, ArrowUpRight, A
 import Swal from 'sweetalert2';
 
 const FinancesPage = () => {
-  // 1. Estados para almacenar la data real del backend
   const [financeData, setFinanceData] = useState({
     kpi: { patrimonio: 0, ingresos: 0, gastos: 0, neto: 0 },
     cashFlowTrends: [],
@@ -14,19 +13,18 @@ const FinancesPage = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  // 2. Fetch de datos al montar el componente
   useEffect(() => {
     const fetchFinanceData = async () => {
       try {
         const response = await apiClient.get('/finances/');
         setFinanceData(response.data);
       } catch (error) {
-        console.error("Error al cargar finanzas:", error);
+        console.error("Error loading finances:", error);
         Swal.fire({
-          title: 'Error de Conexión',
-          text: 'No se pudieron cargar los datos financieros del servidor.',
+          title: 'Connection Error',
+          text: 'Could not load financial data from the server.',
           icon: 'error',
-          confirmButtonColor: '#11131F'
+          confirmButtonColor: '#2563EB'
         });
       } finally {
         setLoading(false);
@@ -37,180 +35,191 @@ const FinancesPage = () => {
   }, []);
 
   if (loading) {
-    return <div className="flex-1 p-8 bg-[#F4F6F8] text-[#8C92AC] font-bold mt-20 text-center">Calculando estados financieros...</div>;
+    return (
+      <div className="flex-1 bg-[#F5F4F0] min-h-screen p-8 text-center mt-20">
+        <p className="text-green-900 font-black animate-pulse text-lg">Calculating financial statements...</p>
+      </div>
+    );
   }
 
   const { kpi, cashFlowTrends, ranchValuationGrowth, generalLedger } = financeData;
 
   return (
-    <div className="flex-1 bg-[#F4F6F8] min-h-screen p-8 mt-[0px] text-black">
+    <div className="flex-1 bg-[#F5F4F0] min-h-screen p-4 text-stone-800">
       
       {/* 1. HEADER */}
-      <div className="flex items-center justify-between mb-8 pb-4 border-b border-[#E0E0E0]">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 border-b border-stone-200 pb-4">
         <div>
-          <h1 className="text-3xl font-bold text-[#11131F] flex items-center gap-3">
-            <Wallet size={32} className="text-[#11131F]" /> Financial Management
+          <h1 className="text-3xl font-black text-green-900 flex items-center gap-3">
+          Financial Management
           </h1>
-          <p className="text-sm text-[#8C92AC] mt-1">Real-time overview of ranch assets, cash flow, and profits.</p>
+          <p className="text-sm text-amber-900 font-semibold mt-1">Real-time overview of ranch assets, cash flow, and profits.</p>
         </div>
         <button 
-          onClick={() => alert('Próximamente: Exportación de reportes en PDF/Excel')}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#11131F] text-white rounded-xl text-sm font-bold hover:bg-black transition-colors shadow-sm"
+          onClick={() => Swal.fire({title: 'Coming Soon!', text: 'Export to PDF/Excel will be available in the next update.', icon: 'info', confirmButtonColor: '#2563EB'})}
+          className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-black hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/30"
         >
-          <FileText size={18} /> Export Financial Statement
+          <FileText size={18} strokeWidth={2.5} /> Export Statement
         </button>
       </div>
 
-      {/* 2. TARJETAS KPI (DINÁMICAS) */}
+      {/* 2. KPI CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         
-        {/* Patrimonio Total */}
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-[#EBEBEB]">
+        {/* Total Assets */}
+        <div className="bg-white p-6 rounded-3xl shadow-lg shadow-stone-500/5 border border-stone-200 relative overflow-hidden">
           <div className="flex items-center justify-between mb-4">
-            <PieChart className="text-[#3498DB]" size={24} />
-            <span className="text-[10px] font-black text-[#3498DB] px-2 py-1 bg-blue-50 rounded-md uppercase tracking-wider">Total Assets</span>
+            <PieChart className="text-blue-600" size={24} />
+            <span className="text-[10px] font-black text-blue-700 px-3 py-1 bg-blue-50 rounded-lg uppercase tracking-widest border border-blue-100">Total Assets</span>
           </div>
-          <p className="text-xs font-bold text-[#8C92AC] uppercase tracking-widest">Patrimonio Estimado</p>
-          <p className="text-3xl font-black text-[#11131F] mt-1">C$ {kpi.patrimonio.toLocaleString('es-NI', { minimumFractionDigits: 2 })}</p>
-          <p className="text-[10px] text-gray-400 mt-2 font-medium">* Includes livestock market value + inventory</p>
+          <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Estimated Net Worth</p>
+          <p className="text-3xl font-black text-stone-800 mt-1">C$ {kpi.patrimonio.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+          <p className="text-[10px] text-stone-400 mt-2 font-bold">* Includes livestock market value & inventory</p>
         </div>
 
-        {/* Ingresos del Mes */}
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-[#EBEBEB]">
+        {/* Gross Income */}
+        <div className="bg-white p-6 rounded-3xl shadow-lg shadow-stone-500/5 border border-stone-200 relative overflow-hidden">
           <div className="flex items-center justify-between mb-4">
-            <ArrowUpRight className="text-[#2ECC71]" size={24} />
-            <span className="text-[10px] font-black text-[#2ECC71] px-2 py-1 bg-green-50 rounded-md uppercase tracking-wider">Gross Income</span>
+            <ArrowUpRight className="text-green-600" size={24} />
+            <span className="text-[10px] font-black text-green-700 px-3 py-1 bg-green-50 rounded-lg uppercase tracking-widest border border-green-100">Gross Income</span>
           </div>
-          <p className="text-xs font-bold text-[#8C92AC] uppercase tracking-widest">Ingresos Brutos</p>
-          <p className="text-3xl font-black text-[#2ECC71] mt-1">C$ {kpi.ingresos.toLocaleString('es-NI', { minimumFractionDigits: 2 })}</p>
-          <p className="text-[10px] text-gray-400 mt-2 font-medium">From milk sales & cattle trade</p>
+          <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Period Revenue</p>
+          <p className="text-3xl font-black text-green-600 mt-1">C$ {kpi.ingresos.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+          <p className="text-[10px] text-stone-400 mt-2 font-bold">From milk sales & cattle trade</p>
         </div>
 
-        {/* Gastos Totales */}
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-[#EBEBEB]">
+        {/* Total Expenses */}
+        <div className="bg-white p-6 rounded-3xl shadow-lg shadow-stone-500/5 border border-stone-200 relative overflow-hidden">
           <div className="flex items-center justify-between mb-4">
-            <ArrowDownRight className="text-[#E74C3C]" size={24} />
-            <span className="text-[10px] font-black text-[#E74C3C] px-2 py-1 bg-red-50 rounded-md uppercase tracking-wider">Expenses</span>
+            <ArrowDownRight className="text-red-500" size={24} />
+            <span className="text-[10px] font-black text-red-700 px-3 py-1 bg-red-50 rounded-lg uppercase tracking-widest border border-red-100">Expenses</span>
           </div>
-          <p className="text-xs font-bold text-[#8C92AC] uppercase tracking-widest">Gastos Operativos</p>
-          <p className="text-3xl font-black text-[#E74C3C] mt-1">C$ {kpi.gastos.toLocaleString('es-NI', { minimumFractionDigits: 2 })}</p>
-          <p className="text-[10px] text-gray-400 mt-2 font-medium">From feed, health & logistics</p>
+          <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Operating Costs</p>
+          <p className="text-3xl font-black text-red-500 mt-1">C$ {kpi.gastos.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+          <p className="text-[10px] text-stone-400 mt-2 font-bold">From feed, health & logistics</p>
         </div>
 
-        {/* Saldo en Caja / Liquidez */}
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-[#EBEBEB]">
+        {/* Available Cash / Liquidity */}
+        <div className="bg-white p-6 rounded-3xl shadow-lg shadow-stone-500/5 border border-stone-200 relative overflow-hidden">
           <div className="flex items-center justify-between mb-4">
-            <DollarSign className="text-[#F39C12]" size={24} />
-            <span className="text-[10px] font-black text-[#F39C12] px-2 py-1 bg-yellow-50 rounded-md uppercase tracking-wider">Available Cash</span>
+            <DollarSign className="text-amber-600" size={24} />
+            <span className="text-[10px] font-black text-amber-700 px-3 py-1 bg-amber-50 rounded-lg uppercase tracking-widest border border-amber-100">Available Cash</span>
           </div>
-          <p className="text-xs font-bold text-[#8C92AC] uppercase tracking-widest">Saldo en Caja</p>
-          <p className={`text-3xl font-black mt-1 ${kpi.neto < 0 ? 'text-red-500' : 'text-[#11131F]'}`}>
-            C$ {kpi.neto.toLocaleString('es-NI', { minimumFractionDigits: 2 })}
+          <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Cash Balance</p>
+          <p className={`text-3xl font-black mt-1 ${kpi.neto < 0 ? 'text-red-600' : 'text-stone-800'}`}>
+            C$ {kpi.neto.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
-          <p className="text-[10px] text-[#2ECC71] font-bold mt-2 flex items-center gap-1">
+          <p className={`text-[10px] font-black mt-2 flex items-center gap-1 ${kpi.neto >= 0 ? 'text-green-600' : 'text-red-500'}`}>
             {kpi.neto >= 0 ? '▲ Positive liquidity' : '▼ Negative liquidity'}
           </p>
         </div>
       </div>
 
-      {/* 3. SECCIÓN DE GRÁFICAS (DINÁMICAS) */}
+      {/* 3. CHARTS SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         
-        {/* Gráfico 1: Ingresos vs Gastos */}
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-[#EBEBEB]">
-          <h2 className="text-lg font-bold text-[#11131F] mb-4 flex items-center gap-2">
-            <TrendingUp size={20} className="text-[#2ECC71]" /> Monthly Cash Flow Trends
+        {/* Chart 1: Income vs Expenses */}
+        <div className="bg-white p-6 rounded-3xl shadow-lg shadow-stone-500/5 border border-stone-200">
+          <h2 className="text-xl font-black text-green-900 mb-6 flex items-center gap-2">
+            <TrendingUp size={20} className="text-green-600" /> Monthly Cash Flow Trends
           </h2>
           <ResponsiveContainer width="100%" height={260}>
             {cashFlowTrends.length > 0 ? (
               <BarChart data={cashFlowTrends}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F0" />
-                <XAxis dataKey="month" tick={{ fill: '#8C92AC', fontSize: 12 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#8C92AC', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #EBEBEB' }} />
-                <Legend verticalAlign="top" height={36} iconType="circle" />
-                <Bar dataKey="Income" fill="#2ECC71" radius={[4, 4, 0, 0]} name="Ingresos (C$)" />
-                <Bar dataKey="Expenses" fill="#E74C3C" radius={[4, 4, 0, 0]} name="Gastos (C$)" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E7E5E4" />
+                <XAxis dataKey="month" tick={{ fill: '#78716C', fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: '#78716C', fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #E7E5E4', fontWeight: 'bold' }} />
+                <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 'bold', color: '#1C1917' }} />
+                <Bar dataKey="Income" fill="#16A34A" radius={[4, 4, 0, 0]} name="Income (C$)" />
+                <Bar dataKey="Expenses" fill="#DC2626" radius={[4, 4, 0, 0]} name="Expenses (C$)" />
               </BarChart>
             ) : (
-              <div className="flex h-full items-center justify-center text-[#8C92AC] text-sm">No data available for chart</div>
+              <div className="flex h-full items-center justify-center text-stone-400 font-bold text-sm">No data available for chart</div>
             )}
           </ResponsiveContainer>
         </div>
 
-        {/* Gráfico 2: Crecimiento de Patrimonio */}
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-[#EBEBEB]">
-          <h2 className="text-lg font-bold text-[#11131F] mb-4 flex items-center gap-2">
-            <Calendar size={20} className="text-[#3498DB]" /> Ranch Valuation Growth (Net Worth)
+        {/* Chart 2: Net Worth Growth */}
+        <div className="bg-white p-6 rounded-3xl shadow-lg shadow-stone-500/5 border border-stone-200">
+          <h2 className="text-xl font-black text-green-900 mb-6 flex items-center gap-2">
+            <Calendar size={20} className="text-blue-600" /> Ranch Valuation Growth
           </h2>
           <ResponsiveContainer width="100%" height={260}>
             {ranchValuationGrowth.length > 0 ? (
               <LineChart data={ranchValuationGrowth}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F0" />
-                <XAxis dataKey="month" tick={{ fill: '#8C92AC', fontSize: 12 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#8C92AC', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #EBEBEB' }} />
-                <Line type="monotone" dataKey="Value" stroke="#3498DB" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} name="Valor Total (C$)" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E7E5E4" />
+                <XAxis dataKey="month" tick={{ fill: '#78716C', fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: '#78716C', fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #E7E5E4', fontWeight: 'bold' }} />
+                <Line type="monotone" dataKey="Value" stroke="#2563EB" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#2563EB' }} name="Total Value (C$)" />
               </LineChart>
             ) : (
-               <div className="flex h-full items-center justify-center text-[#8C92AC] text-sm">No data available for chart</div>
+               <div className="flex h-full items-center justify-center text-stone-400 font-bold text-sm">No data available for chart</div>
             )}
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* 4. CONSOLIDADO DE TRANSACCIONES (DINÁMICO) */}
-      <div className="bg-white rounded-3xl shadow-sm border border-[#EBEBEB] overflow-hidden">
-        <div className="p-6 border-b border-[#EBEBEB]">
-          <h2 className="text-xl font-bold text-[#11131F]">Consolidated General Ledger</h2>
-          <p className="text-xs text-[#8C92AC] mt-1">Combined history of events with economic impact.</p>
+      {/* 4. CONSOLIDATED LEDGER */}
+      <div className="bg-white rounded-3xl shadow-lg shadow-stone-500/5 border border-stone-200 overflow-hidden">
+        <div className="p-6 border-b border-stone-100 bg-[#FAF8F5]">
+          <h2 className="text-2xl font-black text-green-900">Consolidated General Ledger</h2>
+          <p className="text-sm font-semibold text-stone-500 mt-1">Combined history of events with economic impact.</p>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-[#F4F6F8] text-[#8C92AC] text-[10px] uppercase font-black tracking-widest">
+            <thead className="bg-[#FAF8F5] text-amber-900 text-[10px] uppercase font-black tracking-widest border-b border-stone-200">
               <tr>
-                <th className="p-4">Date</th>
-                <th className="p-4">Description</th>
-                <th className="p-4">Category</th>
-                <th className="p-4">Impact type</th>
-                <th className="p-4 text-right">Amount</th>
+                <th className="p-5 pl-6">Date</th>
+                <th className="p-5">Description</th>
+                <th className="p-5">Category</th>
+                <th className="p-5">Impact Type</th>
+                <th className="p-5 text-right pr-6">Amount</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#EBEBEB]">
+            <tbody className="divide-y divide-stone-100">
               {generalLedger.length > 0 ? (
-                generalLedger.map((tx) => (
-                  <tr key={tx.id} className="hover:bg-[#F9FAFB] transition-colors bg-white">
-                    <td className="p-4 text-xs font-medium text-[#8C92AC]">
-                      {new Date(tx.date).toLocaleDateString('es-NI', { year: 'numeric', month: 'short', day: 'numeric' })}
-                    </td>
-                    <td className="p-4">
-                      <p className="text-sm font-bold text-[#11131F]">{tx.description}</p>
-                    </td>
-                    <td className="p-4">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-gray-500 bg-gray-100 px-2 py-1 rounded-md">
-                        {tx.category}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className={`flex items-center gap-1 font-bold text-[10px] uppercase px-2 py-0.5 rounded-lg w-fit border ${
-                        tx.type === 'Ingreso' ? 'bg-green-50 text-green-600 border-green-200' :
-                        tx.type === 'Egreso' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-orange-50 text-orange-600 border-orange-200'
+                generalLedger.map((tx) => {
+                  // Translation mapping for UI
+                  const impactTypeStr = tx.type === 'Ingreso' ? 'Income' : tx.type === 'Egreso' ? 'Expense' : tx.type;
+
+                  return (
+                    <tr key={tx.id} className="hover:bg-stone-50 transition-colors">
+                      <td className="p-5 pl-6 text-xs font-bold text-stone-500">
+                        {new Date(tx.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </td>
+                      <td className="p-5">
+                        <p className="text-sm font-black text-stone-800">{tx.description}</p>
+                      </td>
+                      <td className="p-5">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-stone-500 bg-stone-100 px-2.5 py-1 rounded-md">
+                          {tx.category}
+                        </span>
+                      </td>
+                      <td className="p-5">
+                        <div className={`flex items-center justify-center gap-1 font-black text-[9px] uppercase tracking-widest px-2.5 py-1 rounded-lg w-fit border ${
+                          tx.type === 'Ingreso' ? 'bg-green-50 text-green-700 border-green-200' :
+                          tx.type === 'Egreso' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                          {impactTypeStr}
+                        </div>
+                      </td>
+                      <td className={`p-5 pr-6 text-right font-black text-sm ${
+                        tx.type === 'Ingreso' ? 'text-green-700' : tx.type === 'Egreso' ? 'text-red-600' : 'text-amber-600'
                       }`}>
-                        {tx.type}
-                      </div>
-                    </td>
-                    <td className={`p-4 text-right font-black text-sm ${
-                      tx.type === 'Ingreso' ? 'text-green-600' : tx.type === 'Egreso' ? 'text-red-600' : 'text-orange-500'
-                    }`}>
-                      {tx.type === 'Ingreso' ? '+' : '-'} C$ {tx.amount.toLocaleString('es-NI', { minimumFractionDigits: 2 })}
-                    </td>
-                  </tr>
-                ))
+                        {tx.type === 'Ingreso' ? '+' : '-'} C$ {tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  )
+                })
               ) : (
                  <tr>
-                    <td colSpan="5" className="p-8 text-center text-[#8C92AC] text-sm">
-                      No financial transactions recorded yet.
+                    <td colSpan="5" className="p-12 text-center">
+                      <span className="text-4xl mb-4 block">🧾</span>
+                      <h3 className="text-lg font-black text-green-900">No transactions yet</h3>
+                      <p className="text-sm font-semibold text-stone-500 mt-1">Financial records will appear here automatically.</p>
                     </td>
                  </tr>
               )}
