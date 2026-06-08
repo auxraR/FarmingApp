@@ -1,6 +1,18 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+class MarketPrice(models.Model):
+    categoria = models.CharField(max_length=50, unique=True)
+    precio_kg = models.DecimalField(max_digits=10, decimal_places=2)
+    estado = models.IntegerField(default=1)
+
+    class Meta:
+        db_table = 'Precios_Mercado'
+
+    def __str__(self):
+        return f"{self.categoria} - C${self.precio_kg}/kg"
+
+
 class Livestock(models.Model):
     id = models.AutoField(primary_key=True, db_column='ID_ganado')
     
@@ -18,22 +30,18 @@ class Livestock(models.Model):
     metodo_obtencion = models.CharField(max_length=50, db_column='Metodo_obtencion', null=True, blank=True)
     estado = models.IntegerField(db_column='Estado', default=1)
     batch = models.ForeignKey('Batch', on_delete=models.SET_NULL, null=True, blank=True, db_column='batch')
-    categoria = models.ForeignKey(
-        'PrecioMercado', 
-        on_delete=models.RESTRICT,
-        db_column='categoria_id'
-    )
-    valor_manual = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
-    class Meta:
-        managed = False  
-        db_table = 'Ganado'
+    imagen = models.ImageField(upload_to='Ganados/', null=True, blank=True)
     
     categoria = models.ForeignKey(
-        'MarketPrice', 
+        MarketPrice, 
         on_delete=models.RESTRICT, 
         db_column='categoria_id'
     )
     valor_manual = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+
+    class Meta:
+        managed = False  
+        db_table = 'Ganado'
 
     @property
     def valor_estimado(self):
@@ -41,7 +49,7 @@ class Livestock(models.Model):
             return float(self.valor_manual)
             
         try:
-            precio_obj = MarketPrice.objects.get(categoria=self.categoria.categoria) # Ajusta según tu campo
+            precio_obj = MarketPrice.objects.get(categoria=self.categoria.categoria)
             precio_kilo = float(precio_obj.precio_kg)
             peso_animal = float(self.peso or 0)
             
@@ -57,62 +65,68 @@ class Batch(models.Model):
     id = models.AutoField(primary_key=True, db_column='ID_batch')
     name = models.CharField(max_length=50, db_column='Name')
     description = models.CharField(max_length=200, db_column='Description', null=True)
+    estado = models.IntegerField(default=1)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'Batch'
 
 class FeedingLog(models.Model):
     id = models.AutoField(primary_key=True, db_column='ID_feeding')
-    batch = models.ForeignKey(Batch, on_delete=models.CASCADE, db_column='ID_batch')
+    batch = models.ForeignKey(Batch, on_delete=models.CASCADE, db_column='ID_batch', null=True, blank=True)
     date = models.DateField(db_column='Date', auto_now_add=True)
     schedule = models.CharField(max_length=20, db_column='Schedule')
     observations = models.TextField(db_column='Observations', null=True)
     producto = models.ForeignKey('Products', models.DO_NOTHING, db_column='ID_producto', null=True)
     quantity_kg = models.DecimalField(db_column='Quantity_kg', max_digits=10, decimal_places=2)
-    
+    estado = models.IntegerField(default=1)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'Feeding_Log'
     
 
 class HealthAction(models.Model):
     id = models.AutoField(primary_key=True, db_column='ID_accion')
-    animal = models.ForeignKey(Livestock, on_delete=models.CASCADE, db_column='ID_ganado')
+    animal = models.ForeignKey(Livestock, on_delete=models.CASCADE, db_column='ID_ganado', null=True, blank=True)
     tipo_evento = models.CharField(max_length=100, db_column='Tipo_evento')
     dosis = models.CharField(max_length=50, db_column='Dosis')
     fecha = models.DateField(db_column='Fecha')
     observaciones = models.TextField(db_column='Observaciones', null=True, blank=True)
+    estado = models.IntegerField(default=1)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'Acciones_sanitarias'
+
 
 class WeightControl(models.Model):
     id = models.AutoField(primary_key=True, db_column='ID_pesaje')
-    animal = models.ForeignKey(Livestock, on_delete=models.CASCADE, db_column='ID_ganado')
+    animal = models.ForeignKey(Livestock, on_delete=models.CASCADE, db_column='ID_ganado', null=True, blank=True)
     peso = models.DecimalField(max_digits=10, decimal_places=2, db_column='Peso')
     fecha = models.DateField(db_column='Fecha')
+    estado = models.IntegerField(default=1)
 
     class Meta:
-        managed = False  
+        managed = True  
         db_table = 'Control_pesaje'
 
 
 class MilkProduction(models.Model):
     id = models.AutoField(primary_key=True, db_column='ID_ordeño')
-    animal = models.ForeignKey(Livestock, on_delete=models.CASCADE, db_column='ID_ganado')
+    animal = models.ForeignKey(Livestock, on_delete=models.CASCADE, db_column='ID_ganado',null=True, blank=True)
     liters_produced = models.DecimalField(max_digits=10, decimal_places=2, db_column='Litros_producidos')
     date = models.DateTimeField(auto_now_add=True, db_column='Fecha')
+    estado = models.IntegerField(default=1)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'Produccion_leche'
         ordering = ['-date']
 
     def __str__(self):
         return f"Milking of Animal #{self.animal_id} on {self.date}"
+
 
 class Client(models.Model):
     id = models.AutoField(primary_key=True, db_column='ID_cliente')
@@ -120,10 +134,12 @@ class Client(models.Model):
     apellido = models.CharField(max_length=100, db_column='Apellido')
     direccion = models.CharField(max_length=255, db_column='Direccion', null=True, blank=True)
     telefono = models.CharField(max_length=20, db_column='Telefono', null=True, blank=True)
+    estado = models.IntegerField(default=1)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'Clientes'
+
 
 class Products(models.Model):
     id = models.AutoField(primary_key=True, db_column='ID_producto')
@@ -132,63 +148,69 @@ class Products(models.Model):
     precio_actual = models.DecimalField(max_digits=10, decimal_places=2, db_column='Precio_actual')
     stock = models.DecimalField(max_digits=10, decimal_places=2, db_column='Stock')
     categoria = models.CharField(max_length=50, db_column='Categoria', default='Venta')
+    estado = models.IntegerField(default=1)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'Productos'
+
 
 class Sales(models.Model):
     id = models.AutoField(primary_key=True, db_column='ID_venta')
-    client = models.ForeignKey(Client, on_delete=models.DO_NOTHING, db_column='ID_cliente')
+    client = models.ForeignKey(Client, on_delete=models.DO_NOTHING, db_column='ID_cliente', null=True, blank=True)
     sale_date = models.DateTimeField(auto_now_add=True, db_column='Fecha_venta')
     total = models.DecimalField(max_digits=12, decimal_places=2, db_column='Total')
     status = models.CharField(max_length=50, db_column='Estado', default='Completada')
+    estado = models.IntegerField(default=1)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'Ventas'
+
 
 class SalesDetails(models.Model):
     id = models.AutoField(primary_key=True, db_column='ID_detalle')
-    venta = models.ForeignKey(Sales, related_name='detalles', on_delete=models.CASCADE, db_column='ID_venta')
+    venta = models.ForeignKey(Sales, related_name='detalles', on_delete=models.CASCADE, db_column='ID_venta',null=True, blank=True)
     tipo_item = models.CharField(max_length=50, db_column='Tipo_item') # 'Producto' o 'Ganado'
     producto = models.ForeignKey(Products, null=True, blank=True, on_delete=models.DO_NOTHING, db_column='ID_producto')
-    ganado = models.ForeignKey('Livestock', null=True, blank=True, on_delete=models.DO_NOTHING, db_column='ID_ganado')
+    ganado = models.ForeignKey(Livestock, null=True, blank=True, on_delete=models.DO_NOTHING, db_column='ID_ganado')
     cantidad = models.DecimalField(max_digits=10, decimal_places=2, db_column='Cantidad')
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, db_column='Subtotal')
     observaciones = models.CharField(max_length=255, null=True, blank=True, db_column='Observaciones')
+    estado = models.IntegerField(default=1)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'Detalle_venta'
-
 
 
 class Salida(models.Model):
     id = models.AutoField(primary_key=True, db_column='ID_salida')
-    ganado = models.ForeignKey(Livestock, on_delete=models.DO_NOTHING, db_column='ID_ganado')
+    ganado = models.ForeignKey(Livestock, on_delete=models.DO_NOTHING, db_column='ID_ganado',null=True, blank=True)
     fecha_salida = models.DateField(db_column='Fecha_salida', auto_now_add=True)
     motivo_salida = models.CharField(max_length=50, db_column='Motivo_salida')
     observaciones = models.CharField(max_length=255, db_column='Observaciones', null=True, blank=True)
     venta = models.ForeignKey('Sales', on_delete=models.DO_NOTHING, db_column='ID_venta', null=True, blank=True)
+    estado = models.IntegerField(default=1)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'Salidas'
 
 
 class InventoryMovement(models.Model):
     id = models.AutoField(primary_key=True, db_column='ID_movimiento')
-    producto = models.ForeignKey('Products', on_delete=models.CASCADE, db_column='ID_producto')
+    producto = models.ForeignKey('Products', on_delete=models.CASCADE, db_column='ID_producto', null=True, blank=True)
     tipo_movimiento = models.CharField(max_length=20, db_column='Tipo_movimiento') # 'Entrada' o 'Salida'
     cantidad = models.DecimalField(max_digits=10, decimal_places=2, db_column='Cantidad')
     costo_unitario = models.DecimalField(max_digits=10, decimal_places=2, db_column='Costo_Unitario', null=True, blank=True)
     fecha_movimiento = models.DateTimeField(auto_now_add=True, db_column='Fecha_movimiento')
     motivo = models.CharField(max_length=100, db_column='Motivo')
     observaciones = models.CharField(max_length=255, db_column='Observaciones', null=True, blank=True)
+    estado = models.IntegerField(default=1)
 
     class Meta:
-        managed = False 
+        managed = True 
         db_table = 'Movimientos_Inventario'
 
 
@@ -204,22 +226,10 @@ class UserProfile(models.Model):
         db_table = 'User_Profiles'
 
 
-class MarketPrice(models.Model):
-    categoria = models.CharField(max_length=50, unique=True)
-    precio_kg = models.DecimalField(max_digits=10, decimal_places=2)
-
-    class Meta:
-        db_table = 'Precios_Mercado'
-
-    def __str__(self):
-        return f"{self.categoria} - C${self.precio_kg}/kg"
-    
-
 class CashRegister(models.Model):
     saldo_inicial = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     fecha_registro = models.DateTimeField(auto_now_add=True)
+    estado = models.IntegerField(default=1)
 
     class Meta:
         db_table = 'Control_Caja'
-
-

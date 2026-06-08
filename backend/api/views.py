@@ -2,7 +2,7 @@ from rest_framework import viewsets, filters, status
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import transaction
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view  
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -10,6 +10,10 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.views import APIView
 from django.db.models import Sum, F, Count, Avg
 from datetime import datetime, timedelta
+import os
+import google.generativeai as genai
+from dotenv import load_dotenv
+import subprocess
 
 
 from .models import (
@@ -44,6 +48,40 @@ from .serializers import (
     MarketPriceSerializer
 )
 
+
+load_dotenv()
+
+
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+INSTRUCCIONES_SISTEMA = """
+Eres 'CowBot', el asistente de soporte técnico exclusivo del 'Sistema de Gestión de la finca Flor de Maria'.
+Tu ÚNICO propósito es ayudar al usuario a entender los módulos del sistema y resolver errores. No respondas preguntas fuera de este contexto.
+
+Conocimiento de la Arquitectura del Sistema:
+- El sistema utiliza "Borrado Lógico" (archiva u oculta los registros en lugar de borrarlos físicamente) para que la contabilidad y el Kardex nunca se desajusten.
+- Para Cerrar Sesión (Logout), el usuario debe usar el botón en la parte inferior del menú lateral.
+
+Los módulos del sistema (Sidebar) son:
+1. Dashboard: Panel principal con KPIs (Total Assets, Income, Expenses). Filtra automáticamente datos archivados.
+2. Livestock (Ganado): Registro del catálogo de animales, raza y sexo.
+3. Feeding (Alimentación): Asignación de raciones a grupos. Valida que haya stock en inventario.
+4. Health (Salud): Registro de peso y vacunas. Regla estricta: Las vacunas fuertes exigen 180 días de espera entre dosis.
+5. Production (Producción): Registro de litros de leche ordeñados diariamente.
+6. Sales (Ventas): Registro de ventas (animales o leche) a los clientes. Ingresa dinero a Finanzas.
+7. Finances (Finanzas): Resumen de flujo de caja y tendencias (Solo Gerencia).
+8. Inventory (Inventario): Kardex automatizado (Entradas y Salidas). Alimenta y descuenta stock real.
+9. Outflow (Salidas): Registro de bajas por muerte, robo o escape. Oculta al animal. Se puede revertir si fue un error.
+10. Reports (Reportes): Generación de informes en PDF (Solo Gerencia).
+11. Settings (Configuración): Gestión de grupos, precios, directorio de clientes y el panel de Seguridad (Copias de Seguridad / Backups manuales y automáticos).
+
+Tus reglas de comportamiento:
+- Si el usuario pregunta "cómo hago para..." o "por qué no me deja...", explícale el paso a paso dentro del módulo correspondiente.
+- Responde siempre de forma MUY BREVE y al grano. Un detallito no más. Máximo 2 o 3 líneas cortas.
+- Usa un tono amigable pero profesional y si el usario habla ingles, responde en ingles.
+-No es obligatorio con cada mensaje pero puedes agregar una mini bromita o algo como unca vaca, porque realmente eres un chatbot pero simulando que eres una vaca osea puedes poner "MOOOOO" en varios mensajes como una vaca
+"""
+
 class LivestockViewSet(viewsets.ModelViewSet):
     queryset = Livestock.objects.all() 
     serializer_class = LivestockSerializer 
@@ -65,16 +103,16 @@ class LivestockViewSet(viewsets.ModelViewSet):
         return queryset
 
 class BatchViewSet(viewsets.ModelViewSet):
-    queryset = Batch.objects.all()
+    queryset = Batch.objects.filter(estado=1)
     serializer_class = BatchSerializer
 
 
 class MarketPriceViewSet(viewsets.ModelViewSet):
-        queryset = MarketPrice.objects.all()
+        queryset = MarketPrice.objects.filter(estado=1)
         serializer_class = MarketPriceSerializer
 
 class FeedingLogViewSet(viewsets.ModelViewSet):
-    queryset = FeedingLog.objects.all().order_by('-date', '-id')
+    queryset = FeedingLog.objects.filter(estado=1).order_by('-date', '-id')
     serializer_class = FeedingLogSerializer
 
     def perform_create(self, serializer):
@@ -94,7 +132,7 @@ class HealthActionViewSet(viewsets.ModelViewSet):
     serializer_class = HealthActionSerializer
 
     def get_queryset(self):
-        queryset = HealthAction.objects.all().order_by('-fecha')
+        queryset = HealthAction.objects.filter(estado=1).order_by('-fecha')
         animal_id = self.request.query_params.get('animal_id', None)
         if animal_id is not None:
             queryset = queryset.filter(animal_id=animal_id)
@@ -128,7 +166,7 @@ class WeightControlViewSet(viewsets.ModelViewSet):
     serializer_class = WeightControlSerializer
 
     def get_queryset(self):
-        queryset = WeightControl.objects.all().order_by('-fecha')
+        queryset = WeightControl.objects.filter(estado=1).order_by('-fecha')
         animal_id = self.request.query_params.get('animal_id', None)
         if animal_id is not None:
             queryset = queryset.filter(animal_id=animal_id)
@@ -139,7 +177,7 @@ class MilkProductionViewSet(viewsets.ModelViewSet):
     serializer_class = MilkProductionSerializer
 
     def get_queryset(self):
-        queryset = MilkProduction.objects.all().order_by('-date')
+        queryset = MilkProduction.objects.filter(estado=1).order_by('-date')
         animal_id = self.request.query_params.get('animal_id', None)
         if animal_id is not None:
             queryset = queryset.filter(animal_id=animal_id)
@@ -161,7 +199,7 @@ class MilkProductionViewSet(viewsets.ModelViewSet):
     
 
 class SalesViewSet(viewsets.ModelViewSet):
-    queryset = Sales.objects.all().order_by('-sale_date', '-id')
+    queryset = Sales.objects.filter(estado=1).order_by('-sale_date', '-id')
     serializer_class = SalesSerializer
 
     def create(self, request, *args, **kwargs):
@@ -179,20 +217,20 @@ class SalesViewSet(viewsets.ModelViewSet):
 
 
 class ClientViewSet(viewsets.ModelViewSet):
-    queryset = Client.objects.all().order_by('-id')
+    queryset = Client.objects.filter(estado=1).order_by('-id')
     serializer_class = ClientSerializer
 
 class ProductsViewSet(viewsets.ModelViewSet):
-    queryset = Products.objects.all().order_by('-id')
+    queryset = Products.objects.filter(estado=1).order_by('-id')
     serializer_class = ProductSerializer
 
 class SalesDetailsViewSet(viewsets.ModelViewSet):
-    queryset = SalesDetails.objects.all().order_by('-id')
+    queryset = SalesDetails.objects.filter(estado=1).order_by('-id')
     serializer_class = SalesDetailSerializer
 
 
 class SalidaViewSet(viewsets.ModelViewSet):
-    queryset = Salida.objects.all().order_by('-fecha_salida', '-id')
+    queryset = Salida.objects.filter(estado=1).order_by('-fecha_salida', '-id')
     serializer_class = SalidaSerializer
 
     def create(self, request, *args, **kwargs):
@@ -229,7 +267,7 @@ class SalidaViewSet(viewsets.ModelViewSet):
 
 
 class InventoryMovementViewSet(viewsets.ModelViewSet):
-    queryset = InventoryMovement.objects.all().order_by('-fecha_movimiento')
+    queryset = InventoryMovement.objects.filter(estado=1).order_by('-fecha_movimiento')
     serializer_class = InventoryMovementSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['tipo_movimiento', 'producto', 'motivo']
@@ -252,21 +290,24 @@ class CustomLoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
 
-
 class FinanceSummaryView(APIView):
     def get(self, request):
         try:
             caja_obj = CashRegister.objects.order_by('-fecha_registro').first()
             saldo_inicial = float(caja_obj.saldo_inicial) if caja_obj else 0.0
 
+            # 👻 FIX: Filtramos por estado=1 para ignorar compras archivadas
             gastos_totales = InventoryMovement.objects.filter(
+                estado=1,
                 tipo_movimiento='Entrada', 
                 motivo__icontains='Compra'
             ).aggregate(total=Sum('costo_unitario'))['total'] or 0.0
             
             gastos_totales = float(gastos_totales)
 
+            # 👻 FIX: Filtramos por estado=1 para ignorar ventas archivadas
             ingresos_totales = InventoryMovement.objects.filter(
+                estado=1,
                 tipo_movimiento='Salida',
                 motivo__icontains='Venta'
             ).aggregate(total=Sum(F('cantidad') * F('producto__precio_actual')))['total'] or 0.0
@@ -275,9 +316,10 @@ class FinanceSummaryView(APIView):
 
             dinero_en_caja = saldo_inicial + ingresos_totales - gastos_totales
 
+            # El ganado ya tenía el filtro correctamente
             inventario_ganado_vivo = sum(float(animal.valor_estimado) for animal in Livestock.objects.filter(estado=1))
 
-            inventario_bodega = Products.objects.all().aggregate(
+            inventario_bodega = Products.objects.filter(estado=1).aggregate(
                 total=Sum(F('stock') * F('precio_actual'))
             )['total'] or 0.0
             inventario_bodega = float(inventario_bodega)
@@ -296,7 +338,7 @@ class FinanceSummaryView(APIView):
                 { 'month': 'May', 'Value': patrimonio_total },
             ]
 
-            ultimos_movimientos = InventoryMovement.objects.all().order_by('-fecha_movimiento')[:5]
+            ultimos_movimientos = InventoryMovement.objects.filter(estado=1).order_by('-fecha_movimiento')[:5]
             ledger_list = []
             for mov in ultimos_movimientos:
                 ledger_list.append({
@@ -538,3 +580,42 @@ class ReportGeneratorView(APIView):
             print("\nERROR GENERANDO REPORTE:")
             print(repr(e))
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+'''Pruebas de implmentacion del chat bot de maxima calydahhh'''
+@api_view(['POST'])
+def recibir_mensaje_chat(request):
+    mensaje = request.data.get('mensaje', '')
+
+    if not mensaje:
+        return Response({"error": "No message sent"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if len(mensaje) > 300:
+        return Response({"Reply": "The message is very long. Please be more concise and tell me your specific question."})
+
+    try:
+        model = genai.GenerativeModel(
+            'gemini-2.5-flash',
+            system_instruction=INSTRUCCIONES_SISTEMA
+        )
+        
+        respuesta_ia = model.generate_content(mensaje)
+        
+        return Response({"respuesta": respuesta_ia.text}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print(f"Error en la API de Gemini: {e}")
+        return Response({"error": "There was a connection problem with the support server."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+
+@api_view(['POST'])
+def generar_backup_manual(request):
+    try:
+        ruta_script = r"C:\FincaBackups\automate_backup.bat"
+        
+        subprocess.run([ruta_script], check=True, shell=True)
+        
+        return Response({"mensaje": "Copia de seguridad generada con éxito."}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": f"Error al generar backup: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

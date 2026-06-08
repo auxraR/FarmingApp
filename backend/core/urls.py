@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from django.conf import settings
+from django.conf.urls.static import static
 from api.views import (
     CustomLoginView,
     LivestockViewSet,
@@ -17,7 +19,9 @@ from api.views import (
     InventoryMovementViewSet,
     MarketPriceViewSet,
     FinanceSummaryView,
-    ReportGeneratorView
+    ReportGeneratorView,
+    recibir_mensaje_chat,
+    generar_backup_manual
 )
 
 router = DefaultRouter()
@@ -38,7 +42,13 @@ router.register(r'precios-mercado', MarketPriceViewSet, basename='precios-mercad
 urlpatterns = [
     path('api/login/', CustomLoginView.as_view(), name='login'),
     path('api/reports/generate/', ReportGeneratorView.as_view(), name='report-generate'),
+    path('api/chatbot/', recibir_mensaje_chat),
+    path('api/backup-manual/', generar_backup_manual),
     path('api/finances/', FinanceSummaryView.as_view(), name='finances-summary'),
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
 ]
+
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
