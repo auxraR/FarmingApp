@@ -113,7 +113,7 @@ const ReportsPage = () => {
       {/* HEADER CONTROLS */}
       <div className="mb-8 pb-4 border-b border-stone-200">
         <h1 className="text-3xl font-black text-green-900">Reports Studio</h1>
-        <p className="text-sm text-amber-900 font-semibold mt-1">Configure and generate official documentation dynamically.</p>
+        <p className="text-sm text-amber-900 font-semibold mt-1"> </p>
       </div>
 
       <div className="max-w-5xl space-y-6">
@@ -401,7 +401,7 @@ const ReportsPage = () => {
             <div className="pdf-page-container bg-white w-[210mm] h-[297mm] p-[15mm] flex flex-col relative box-border mx-auto mb-8">
               
               {/* Financial Header */}
-              <div className="flex justify-between items-end border-b-2 border-green-800 pb-4 mb-8">
+              <div className="flex justify-between items-end border-b-2 border-green-800 pb-4 mb-6">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-3xl">🐄</span>
@@ -411,111 +411,206 @@ const ReportsPage = () => {
                 </div>
                 <div className="text-right">
                   <h2 className="text-2xl font-black text-green-800 uppercase tracking-widest">Financial Report</h2>
-                  <p className="text-xs font-bold text-amber-900 uppercase mt-1">Income Statement</p>
+                  <p className="text-xs font-bold text-amber-900 uppercase mt-1">Cost-Benefit & Losses Analysis</p>
                 </div>
               </div>
 
-              {/* Financial KPIs (4 Blocks) */}
-              <div className="grid grid-cols-4 gap-4 mb-8">
-                <div className="border border-green-200 bg-green-50 rounded-xl p-4">
+              {/* Financial KPIs */}
+              <div className="grid grid-cols-4 gap-4 mb-6">
+                <div className="border border-green-200 bg-green-50 rounded-xl p-3">
                   <p className="text-[9px] font-black text-green-800 uppercase tracking-widest mb-1">Gross Income</p>
-                  <p className="text-xl font-black text-green-700">C$ {reportData.kpis.ingresos_brutos.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                  <p className="text-lg font-black text-green-700">C$ {reportData.kpis.ingresos_brutos.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
                 </div>
-                <div className="border border-red-200 bg-red-50 rounded-xl p-4">
-                  <p className="text-[9px] font-black text-red-800 uppercase tracking-widest mb-1">Operating Expenses</p>
-                  <p className="text-xl font-black text-red-600">C$ {reportData.kpis.gastos_operativos.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                <div className="border border-red-200 bg-red-50 rounded-xl p-3">
+                  <p className="text-[9px] font-black text-red-800 uppercase tracking-widest mb-1">Expenses</p>
+                  <p className="text-lg font-black text-red-600">C$ {reportData.kpis.gastos_operativos.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
                 </div>
-                <div className="border border-blue-200 bg-blue-50 rounded-xl p-4">
-                  <p className="text-[9px] font-black text-blue-800 uppercase tracking-widest mb-1">Total Equity</p>
-                  <p className="text-xl font-black text-blue-700">C$ {reportData.kpis.capital_total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                <div className="border border-amber-200 bg-amber-50 rounded-xl p-3">
+                  <p className="text-[9px] font-black text-amber-800 uppercase tracking-widest mb-1">Lost Assets</p>
+                  <p className="text-lg font-black text-amber-700">C$ {reportData.kpis.perdidas_animales.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
                 </div>
-                <div className="border border-amber-200 bg-amber-50 rounded-xl p-4">
-                  <p className="text-[9px] font-black text-amber-800 uppercase tracking-widest mb-1">Losses (Animals)</p>
-                  <p className="text-xl font-black text-amber-700">C$ {reportData.kpis.perdidas_animales.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
-                  <p className="text-[8px] font-bold text-amber-600 mt-1">{reportData.kpis.cantidad_perdidas} heads registered</p>
-                </div>
-              </div>
-
-              {/* Detailed Tables (2 Columns) */}
-              <div className="grid grid-cols-2 gap-8 mb-8">
-                
-                {/* Income Table */}
-                <div>
-                  <h3 className="text-sm font-black text-green-800 uppercase tracking-widest mb-3">Income Detail</h3>
-                  <table className="w-full text-left border-collapse border border-stone-200">
-                    <thead className="bg-[#FAF8F5] text-[10px] uppercase text-stone-500 font-black">
-                      <tr>
-                        <th className="border border-stone-200 p-2">Concept</th>
-                        <th className="border border-stone-200 p-2 text-right">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-xs font-bold text-stone-800">
-                      {reportData.tablas.ingresos.length > 0 ? (
-                        reportData.tablas.ingresos.map((item, idx) => (
-                          <tr key={idx}>
-                            <td className="border border-stone-200 p-2">{item.concepto}</td>
-                            <td className="border border-stone-200 p-2 text-right">C$ {item.monto.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr><td colSpan="2" className="border border-stone-200 p-2 text-center text-stone-400">No records</td></tr>
-                      )}
-                      <tr className="bg-green-50">
-                        <td className="border border-stone-200 p-2 font-black text-green-800 uppercase tracking-wider text-[10px]">Total Income</td>
-                        <td className="border border-stone-200 p-2 text-right font-black text-green-700">C$ {reportData.kpis.ingresos_brutos.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Expenses Table */}
-                <div>
-                  <h3 className="text-sm font-black text-red-700 uppercase tracking-widest mb-3">Expense Detail</h3>
-                  <table className="w-full text-left border-collapse border border-stone-200">
-                    <thead className="bg-[#FAF8F5] text-[10px] uppercase text-stone-500 font-black">
-                      <tr>
-                        <th className="border border-stone-200 p-2">Concept</th>
-                        <th className="border border-stone-200 p-2 text-right">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-xs font-bold text-stone-800">
-                      {reportData.tablas.egresos.length > 0 ? (
-                        reportData.tablas.egresos.map((item, idx) => (
-                          <tr key={idx}>
-                            <td className="border border-stone-200 p-2">{item.concepto}</td>
-                            <td className="border border-stone-200 p-2 text-right">C$ {item.monto.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr><td colSpan="2" className="border border-stone-200 p-2 text-center text-stone-400">No records</td></tr>
-                      )}
-                      <tr className="bg-red-50">
-                        <td className="border border-stone-200 p-2 font-black text-red-800 uppercase tracking-wider text-[10px]">Total Expenses</td>
-                        <td className="border border-stone-200 p-2 text-right font-black text-red-600">C$ {reportData.kpis.gastos_operativos.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-              </div>
-
-              {/* Final Result */}
-              <div className="bg-[#FAF8F5] border border-stone-200 rounded-xl p-5 flex justify-between items-center mt-auto">
-                <div>
-                  <p className="text-[10px] font-black text-amber-900 uppercase tracking-widest">Net Result for the Period</p>
-                  <p className="text-xs text-stone-500 font-bold mt-1">Income minus Expenses and Losses</p>
-                </div>
-                <div className="text-right">
-                  <p className={`text-2xl font-black ${reportData.kpis.ganancia_neta >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                <div className={`border rounded-xl p-3 ${reportData.kpis.ganancia_neta >= 0 ? 'border-blue-200 bg-blue-50' : 'border-red-200 bg-red-50'}`}>
+                  <p className={`text-[9px] font-black uppercase tracking-widest mb-1 ${reportData.kpis.ganancia_neta >= 0 ? 'text-blue-800' : 'text-red-800'}`}>Net Profit</p>
+                  <p className={`text-lg font-black ${reportData.kpis.ganancia_neta >= 0 ? 'text-blue-700' : 'text-red-600'}`}>
                     C$ {reportData.kpis.ganancia_neta.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
               </div>
 
+              {/* CUADRO A: BAJAS Y PÉRDIDAS DE ANIMALES */}
+              <div className="mb-6">
+                <h3 className="text-sm font-black text-amber-900 uppercase tracking-widest mb-2 flex items-center gap-2">
+                  <AlertTriangle size={16} /> Registry of Losses and Outflows
+                </h3>
+                <table className="w-full text-left border-collapse border border-stone-200">
+                  <thead className="bg-[#FAF8F5] text-[9px] uppercase text-stone-500 font-black">
+                    <tr>
+                      <th className="border border-stone-200 p-2">Identification</th>
+                      <th className="border border-stone-200 p-2">Reason</th>
+                      <th className="border border-stone-200 p-2">Date</th>
+                      <th className="border border-stone-200 p-2 text-right">Financial Loss</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-[10px] font-bold text-stone-800">
+                    {reportData.tablas.bajas_detalle && reportData.tablas.bajas_detalle.length > 0 ? (
+                      reportData.tablas.bajas_detalle.map((item, idx) => (
+                        <tr key={idx} className="bg-red-50/30">
+                          <td className="border border-stone-200 p-2">{item.chapa_nombre}</td>
+                          <td className="border border-stone-200 p-2 text-red-700 uppercase">{item.motivo}</td>
+                          <td className="border border-stone-200 p-2 text-stone-500">{item.fecha}</td>
+                          <td className="border border-stone-200 p-2 text-right text-red-600 font-black">- C$ {item.perdida.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr><td colSpan="4" className="border border-stone-200 p-3 text-center text-stone-400">No animal losses registered in period</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* CUADRO B Y C: COSTO BENEFICIO (Dos Columnas) */}
+              <div className="grid grid-cols-2 gap-6 flex-1">
+                
+                {/* Costo Beneficio: Queso/Derivados */}
+                <div>
+                  <h3 className="text-[11px] font-black text-blue-800 uppercase tracking-widest mb-2">ROI: Dairy Products</h3>
+                  <table className="w-full text-left border-collapse border border-stone-200">
+                    <thead className="bg-[#FAF8F5] text-[9px] uppercase text-stone-500 font-black">
+                      <tr>
+                        <th className="border border-stone-200 p-2">Product</th>
+                        <th className="border border-stone-200 p-2 text-center">Qty</th>
+                        <th className="border border-stone-200 p-2 text-right">Cost</th>
+                        <th className="border border-stone-200 p-2 text-right">Revenue</th>
+                        <th className="border border-stone-200 p-2 text-right">Margin</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-[10px] font-bold text-stone-800">
+                      {reportData.tablas.roi_productos && reportData.tablas.roi_productos.length > 0 ? (
+                        reportData.tablas.roi_productos.map((item, idx) => (
+                          <tr key={idx} className="hover:bg-stone-50">
+                            <td className="border border-stone-200 p-2 text-blue-900 font-black">{item.producto}</td>
+                            <td className="border border-stone-200 p-2 text-center text-stone-500">{item.cantidad_vendida} <span className="text-[8px]">{item.unidad}</span></td>
+                            <td className="border border-stone-200 p-2 text-right text-red-600">- C$ {item.costos.toLocaleString('en-US')}</td>
+                            <td className="border border-stone-200 p-2 text-right text-green-700">C$ {item.ingresos.toLocaleString('en-US')}</td>
+                            <td className="border border-stone-200 p-2 text-right">
+                              <span className={`block font-black ${item.margen >= 0 ? 'text-blue-700' : 'text-red-600'}`}>
+                                C$ {item.margen.toLocaleString('en-US')}
+                              </span>
+                              <span className="text-[8px] uppercase text-stone-500">{item.rentabilidad}% ROI</span>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr><td colSpan="5" className="border border-stone-200 p-3 text-center text-stone-400">No product sales recorded</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Costo Beneficio: Ganado General */}
+                <div>
+                  <h3 className="text-[11px] font-black text-green-800 uppercase tracking-widest mb-2">ROI: Livestock Operations</h3>
+                  <table className="w-full text-left border-collapse border border-stone-200">
+                    <thead className="bg-[#FAF8F5] text-[9px] uppercase text-stone-500 font-black">
+                      <tr>
+                        <th className="border border-stone-200 p-2">Concept</th>
+                        <th className="border border-stone-200 p-2 text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-[10px] font-bold text-stone-800">
+                      {reportData.tablas.roi_ganado && reportData.tablas.roi_ganado.length > 0 ? (
+                        <>
+                          <tr>
+                            <td className="border border-stone-200 p-2">Livestock Sales</td>
+                            <td className="border border-stone-200 p-2 text-right text-green-700">C$ {reportData.tablas.roi_ganado[0].ingresos.toLocaleString('en-US')}</td>
+                          </tr>
+                          <tr>
+                            <td className="border border-stone-200 p-2">Operating Expenses (Feed/Health)</td>
+                            <td className="border border-stone-200 p-2 text-right text-red-600">- C$ {reportData.tablas.roi_ganado[0].gastos.toLocaleString('en-US')}</td>
+                          </tr>
+                          <tr className={reportData.tablas.roi_ganado[0].margen >= 0 ? 'bg-green-50' : 'bg-red-50'}>
+                            <td className="border border-stone-200 p-2 font-black uppercase text-stone-800">Operating Balance</td>
+                            <td className={`border border-stone-200 p-2 text-right font-black ${reportData.tablas.roi_ganado[0].margen >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                              C$ {reportData.tablas.roi_ganado[0].margen.toLocaleString('en-US')}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td colSpan="2" className="border border-stone-200 p-2 text-center text-stone-500 text-[9px] uppercase tracking-widest">
+                              Status: <span className="font-black text-stone-800">{reportData.tablas.roi_ganado[0].estado}</span>
+                            </td>
+                          </tr>
+                        </>
+                      ) : (
+                        <tr><td colSpan="2" className="border border-stone-200 p-3 text-center text-stone-400">No livestock operations recorded</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* DESGLOSE DE INGRESOS Y EGRESOS */}
+              <div className="grid grid-cols-2 gap-6 mb-6">
+                
+                {/* Ingresos (Ventas + Leche) */}
+                <div>
+                  <h3 className="text-[11px] font-black text-green-800 uppercase tracking-widest mb-2">Income & Asset Detail</h3>
+                  <table className="w-full text-left border-collapse border border-stone-200">
+                    <thead className="bg-[#FAF8F5] text-[9px] uppercase text-stone-500 font-black">
+                      <tr>
+                        <th className="border border-stone-200 p-2">Concept</th>
+                        <th className="border border-stone-200 p-2 text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-[10px] font-bold text-stone-800">
+                      {reportData.tablas.ingresos && reportData.tablas.ingresos.length > 0 ? (
+                        reportData.tablas.ingresos.map((item, idx) => (
+                          <tr key={idx}>
+                            <td className="border border-stone-200 p-2">
+                                {item.concepto}
+                                {item.concepto.includes('Leche') && <span className="block text-[8px] text-stone-400 font-bold uppercase mt-0.5">{reportData.kpis.produccion_leche} L</span>}
+                            </td>
+                            <td className="border border-stone-200 p-2 text-right text-green-700">C$ {item.monto.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr><td colSpan="2" className="border border-stone-200 p-2 text-center text-stone-400">No records</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Egresos (Compras) */}
+                <div>
+                  <h3 className="text-[11px] font-black text-red-800 uppercase tracking-widest mb-2">Operating Expenses Detail</h3>
+                  <table className="w-full text-left border-collapse border border-stone-200">
+                    <thead className="bg-[#FAF8F5] text-[9px] uppercase text-stone-500 font-black">
+                      <tr>
+                        <th className="border border-stone-200 p-2">Concept</th>
+                        <th className="border border-stone-200 p-2 text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-[10px] font-bold text-stone-800">
+                      {reportData.tablas.egresos && reportData.tablas.egresos.length > 0 ? (
+                        reportData.tablas.egresos.map((item, idx) => (
+                          <tr key={idx}>
+                            <td className="border border-stone-200 p-2">{item.concepto}</td>
+                            <td className="border border-stone-200 p-2 text-right text-red-600">- C$ {item.monto.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr><td colSpan="2" className="border border-stone-200 p-2 text-center text-stone-400">No records</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+              </div>
+              
+              </div>
+
               {/* Footer */}
               <div className="absolute bottom-[15mm] left-[15mm] right-[15mm] border-t border-stone-200 pt-4 flex justify-between items-center text-[10px] text-stone-400 font-black uppercase tracking-widest">
                 <span>Finca Baltodano's Management System</span>
-                <span>Financial Section</span>
+                <span>Financial & Cost-Benefit Section</span>
               </div>
             </div>
           )}

@@ -21,7 +21,8 @@ from api.views import (
     FinanceSummaryView,
     ReportGeneratorView,
     recibir_mensaje_chat,
-    generar_backup_manual
+    generar_backup_manual,
+    SystemAlertViewSet
 )
 
 router = DefaultRouter()
@@ -38,6 +39,7 @@ router.register(r'sales-details', SalesDetailsViewSet, basename='sales-details')
 router.register(r'sales-outflow', SalidaViewSet, basename='sales-outflow')
 router.register(r'inventory-movements', InventoryMovementViewSet)
 router.register(r'precios-mercado', MarketPriceViewSet, basename='precios-mercado')
+router.register(r'alerts', SystemAlertViewSet, basename='alerts')
 
 urlpatterns = [
     path('api/login/', CustomLoginView.as_view(), name='login'),

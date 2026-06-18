@@ -208,7 +208,8 @@ export default function FeedingPage() {
         src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExZW14c29nZnlmZml4azJneHZzY3J4NTFweDIwcHM5ZXh1dmQzenh5MiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/gE6xxKYcRel4SxzOzV/giphy.gif" 
         alt="Cool Sticker" 
         style={{ width: '70px', height: 'auto' }} 
-      />Feeding Records
+      />
+      Feeding Records
           </h1>
         </div>
         

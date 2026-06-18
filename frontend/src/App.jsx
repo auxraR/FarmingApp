@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./components/Sidebar"; 
 import LivestockDashboard from "./components/LivesStock";
 import FeedingPage from "./components/Feeding";
@@ -14,24 +14,26 @@ import FinancesPage from "./components/Finances";
 import ReportsPage from "./components/Reports";
 import { ChatBotFinca } from "./components/ChatBot";
 import ChatBubble from "./components/chat";
-
+import AnimalProfilePage from "./components/Qrprofile";
 
 const PrivateRoute = ({ allowedRoles }) => {
   const token = localStorage.getItem('access');
   const rol = localStorage.getItem('rol');
+  const location = useLocation(); 
 
-
+  // Si no hay token, lo mandamos al login
   if (!token) return <Navigate to="/login" />;
-  
-  
+
   if (allowedRoles && !allowedRoles.includes(rol)) return <Navigate to="/" />;
   
+  const isProfilePage = location.pathname.startsWith('/animal-ficha');
 
   return (
     <div className="flex min-h-screen bg-[#fff] text-black-700">
-      <Sidebar /> 
-      <ChatBubble/>
-      <main className="flex-1 p-8 overflow-y-auto">
+      {!isProfilePage && <Sidebar />}
+      {!isProfilePage && <ChatBubble/>}
+      
+      <main className={`flex-1 overflow-y-auto ${isProfilePage ? '' : 'p-8'}`}>
         <Outlet />
       </main>
     </div>
@@ -57,11 +59,13 @@ function App() {
           <Route path="/settings" element= {<SettingsPage />} />
           <Route path="/finances" element= {<FinancesPage />} />
           <Route path="/reports" element= {<ReportsPage />} />
-           <Route path="/chat" element= {<ChatBotFinca />} />
+          <Route path="/chat" element= {<ChatBotFinca />} />
+          
+          {/* Tu ruta de la ficha (Protegida para que no entre cualquier persona de afuera) */}
+          <Route path="/animal-ficha/:id" element={<AnimalProfilePage />} />
         </Route>
 
         {/* RUTAS EXCLUSIVAS (Solo Gerente) */}
-        {/* Descomenta y agrega tus componentes cuando los crees */}
         {/* <Route element={<PrivateRoute allowedRoles={['Gerente']} />}>
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/finances" element={<FinancesPage />} />

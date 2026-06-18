@@ -114,7 +114,7 @@ const OutflowPage = () => {
           <h1 className="text-3xl font-black text-green-900 flex items-center gap-3">
             Outflow Management
           </h1>
-          <p className="text-sm text-amber-900 font-semibold mt-1">Record animal departures and deaths</p>
+          <p className="text-sm text-amber-900 font-semibold mt-1"></p>
         </div>
       </div>
 

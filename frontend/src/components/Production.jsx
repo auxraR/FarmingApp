@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import apiClient from '../api/client';
 import Swal from 'sweetalert2';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Plus, Target, BarChart3, TrendingUp, Calendar, Trash2, Edit2, Search } from 'lucide-react';
+import { Plus, Target, BarChart3, TrendingUp, Calendar, Trash2, Edit2, Search, Hash } from 'lucide-react';
 
 const ProductionPage = () => {
   const [productionRecords, setProductionRecords] = useState([]);
@@ -12,8 +12,7 @@ const ProductionPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
-  // 🔥 SOLUCIÓN AL BUG DE ZONA HORARIA
-  // Extrae la fecha local exacta (Nicaragua)
+
   const getLocalDate = () => {
     const today = new Date();
     const year = today.getFullYear();
@@ -34,12 +33,13 @@ const ProductionPage = () => {
 
   const fetchData = async () => {
     try {
-      // Asume que Django ya filtra por estado=1 internamente con el .objects.filter(estado=1)
-      const prodRes = await apiClient.get('/milk-production/');
-      setProductionRecords(prodRes.data);
+      // 🔥 CORRECCIÓN 1: Forzar estado=1 para no ver registros de leche archivados
+      const prodRes = await apiClient.get('/milk-production/?estado=1');
+      setProductionRecords(Array.isArray(prodRes.data) ? prodRes.data : prodRes.data.results || []);
 
-      const animalsRes = await apiClient.get('/livestock/?status=Activo&sexo=Hembra');
-      setAvailableAnimals(animalsRes.data);
+      // 🔥 CORRECCIÓN 2: Cambiar status=Activo a estado=1 para ignorar vacas "fantasmas"
+      const animalsRes = await apiClient.get('/livestock/?estado=1&sexo=Hembra');
+      setAvailableAnimals(Array.isArray(animalsRes.data) ? animalsRes.data : animalsRes.data.results || []);
 
       setIsLoading(false);
     } catch (err) {
@@ -82,8 +82,8 @@ const ProductionPage = () => {
       title: 'Are you sure you want to edit this record?',
       icon: 'question',
       showCancelButton: true,
-      confirmButtonColor: '#2563EB', // Blue
-      cancelButtonColor: '#6B7280',  // Gray
+      confirmButtonColor: '#2563EB', 
+      cancelButtonColor: '#6B7280',  
       confirmButtonText: 'Yes, edit it',
       cancelButtonText: 'Cancel'
     });
@@ -107,8 +107,8 @@ const ProductionPage = () => {
       text: "This will remove the milking session from the active dashboard but keep it in the history.",
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#DC2626', // Red
-      cancelButtonColor: '#6B7280',  // Gray
+      confirmButtonColor: '#DC2626', 
+      cancelButtonColor: '#6B7280',  
       confirmButtonText: 'Yes, archive it',
       cancelButtonText: 'Cancel'
     });
@@ -116,7 +116,7 @@ const ProductionPage = () => {
     if (!result.isConfirmed) return;
 
     try {
-      // 🔥 MAGIA DEL SOFT DELETE
+
       await apiClient.patch(`/milk-production/${id}/`, { estado: 0 });
       Swal.fire({
         title: 'Archived!',
@@ -187,7 +187,6 @@ const ProductionPage = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-black text-green-900 flex items-center gap-2">Daily Milk Production</h1>
-          <p className="text-sm text-amber-900 font-semibold mt-1">Track milking sessions and herd yield</p>
         </div>
         <button 
           onClick={() => {
@@ -248,7 +247,6 @@ const ProductionPage = () => {
             <XAxis dataKey="date" tick={{ fill: '#78716C', fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fill: '#78716C', fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={{ background: '#FFFFFF', border: '1px solid #E7E5E4', borderRadius: '12px', color: '#1C1917', fontWeight: 'bold' }} />
-            {/* Elegant Green Chart */}
             <Area type="monotone" dataKey="Liters" stroke="#166534" fillOpacity={0.2} fill="#86EFAC" strokeWidth={3} dot={{ fill: '#166534', strokeWidth: 2, r: 4 }} />
           </AreaChart>
         </ResponsiveContainer>
@@ -293,11 +291,9 @@ const ProductionPage = () => {
                     </td>
                     <td className="p-5 pr-6">
                       <div className="flex items-center justify-center gap-2">
-                        {/* Azul para Editar */}
                         <button onClick={(e) => handleEdit(e, record)} className="p-2.5 bg-blue-50 hover:bg-blue-600 hover:text-white rounded-xl text-blue-600 transition-all shadow-sm">
                           <Edit2 size={16} strokeWidth={2.5}/>
                         </button>
-                        {/* Rojo para Eliminar */}
                         <button onClick={(e) => handleDelete(e, record.id)} className="p-2.5 bg-red-50 hover:bg-red-600 hover:text-white rounded-xl text-red-600 transition-all shadow-sm">
                           <Trash2 size={16} strokeWidth={2.5}/>
                         </button>
@@ -333,7 +329,10 @@ const ProductionPage = () => {
                 <select name="animal" value={form.animal} onChange={handleInputChange} className="w-full p-3.5 bg-stone-50 rounded-xl text-stone-800 font-semibold border border-stone-200 text-sm focus:ring-4 focus:ring-green-800/10 focus:border-green-800 outline-none transition-all" required>
                   <option value="">-- Choose Cow --</option>
                   {availableAnimals.map(animal => (
-                    <option key={animal.id} value={animal.id}>{animal.nombre || `#${animal.id}`} ({animal.raza})</option>
+                    // 🔥 CORRECCIÓN 3: Mostramos la Chapa aquí también para consistencia
+                    <option key={animal.id} value={animal.id}>
+                      {animal.nombre || 'No Name'} (Tag: #{animal.chapa || animal.id})
+                    </option>
                   ))}
                 </select>
               </div>

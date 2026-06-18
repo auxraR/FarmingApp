@@ -14,7 +14,8 @@ import os
 import google.generativeai as genai
 from dotenv import load_dotenv
 import subprocess
-
+from django.db.models import Q  
+from rest_framework.exceptions import ValidationError
 
 from .models import (
     Livestock,
@@ -30,7 +31,8 @@ from .models import (
     Salida,
     InventoryMovement,
     MarketPrice,
-    CashRegister
+    CashRegister,
+    SystemAlert
 )
 from .serializers import (
     LivestockSerializer,
@@ -45,7 +47,8 @@ from .serializers import (
     ProductSerializer,
     SalidaSerializer,
     InventoryMovementSerializer,
-    MarketPriceSerializer
+    MarketPriceSerializer,
+    SystemAlertSerializer
 )
 
 
@@ -62,29 +65,123 @@ Conocimiento de la Arquitectura del Sistema:
 - El sistema utiliza "Borrado Lógico" (archiva u oculta los registros en lugar de borrarlos físicamente) para que la contabilidad y el Kardex nunca se desajusten.
 - Para Cerrar Sesión (Logout), el usuario debe usar el botón en la parte inferior del menú lateral.
 
+Conocimiento de la Arquitectura del Sistema:
+- El sistema utiliza "Borrado Lógico" (archiva u oculta los registros en lugar de borrarlos físicamente) para que la contabilidad y el Kardex nunca se desajusten.
+- Para Cerrar Sesión (Logout), el usuario debe usar el botón en la parte inferior del menú lateral.
+- Trazabilidad Unitaria: Cada animal tiene un perfil QR que calcula su ROI (Retorno de Inversión) restando los costos médicos y de compra frente a los ingresos generados por su leche o su ganancia de peso (Apreciación del Activo).
+
 Los módulos del sistema (Sidebar) son:
-1. Dashboard: Panel principal con KPIs (Total Assets, Income, Expenses). Filtra automáticamente datos archivados.
-2. Livestock (Ganado): Registro del catálogo de animales, raza y sexo.
-3. Feeding (Alimentación): Asignación de raciones a grupos. Valida que haya stock en inventario.
-4. Health (Salud): Registro de peso y vacunas. Regla estricta: Las vacunas fuertes exigen 180 días de espera entre dosis.
-5. Production (Producción): Registro de litros de leche ordeñados diariamente.
-6. Sales (Ventas): Registro de ventas (animales o leche) a los clientes. Ingresa dinero a Finanzas.
-7. Finances (Finanzas): Resumen de flujo de caja y tendencias (Solo Gerencia).
+1. Dashboard: Panel principal con KPIs (Total Assets, Income, Expenses).
+2. Livestock (Ganado): Catálogo de animales. Muestra la hoja de vida, historial de pesajes, vacunas y rentabilidad financiera individual.
+3. Feeding (Alimentación): Asignación de raciones a grupos. Descuenta automáticamente del inventario.
+4. Health (Salud): Control de peso y vacunas (exigen 180 días de espera entre dosis fuertes). El costo de la medicina se suma a la inversión del animal.
+5. Production (Producción): Ordeño de leche. Automatizado: cada litro registrado suma stock al Inventario y aumenta el Capital Total de la finca.
+6. Sales (Ventas): Registro de ventas. Ingresa dinero a Finanzas.
+7. Finances (Finanzas): Flujo de caja, cálculo de pérdidas por animales muertos/robados y cuadros de Costo-Beneficio (ROI) por productos vendidos.
 8. Inventory (Inventario): Kardex automatizado (Entradas y Salidas). Alimenta y descuenta stock real.
-9. Outflow (Salidas): Registro de bajas por muerte, robo o escape. Oculta al animal. Se puede revertir si fue un error.
-10. Reports (Reportes): Generación de informes en PDF (Solo Gerencia).
-11. Settings (Configuración): Gestión de grupos, precios, directorio de clientes y el panel de Seguridad (Copias de Seguridad / Backups manuales y automáticos).
+9. Outflow (Salidas): Bajas por muerte, robo o escape. Genera una "Pérdida Financiera" en reportes.
+10. Reports (Reportes): Estudio de generación de informes oficiales en PDF (Ejecutivos, Financieros, Salud, Leche e Inventario) con gráficas.
+11. Settings (Configuración): Panel de Seguridad (Copias de Seguridad / Backups manuales y automáticos).
 
 Tus reglas de comportamiento:
-- Si el usuario pregunta "cómo hago para..." o "por qué no me deja...", explícale el paso a paso dentro del módulo correspondiente.
+- Si el usuario pregunta "cómo hago para..." o "por qué no me deja...", explícale el paso a paso de forma clara.
 - Responde siempre de forma MUY BREVE y al grano. Un detallito no más. Máximo 2 o 3 líneas cortas.
-- Usa un tono amigable pero profesional y si el usario habla ingles, responde en ingles.
--No es obligatorio con cada mensaje pero puedes agregar una mini bromita o algo como unca vaca, porque realmente eres un chatbot pero simulando que eres una vaca osea puedes poner "MOOOOO" en varios mensajes como una vaca
+- Usa un tono amigable pero profesional y si el usuario habla inglés, responde en inglés.
+- No es obligatorio en cada mensaje, pero simula que eres una vaca técnica. Usa un "MOOOOO" ocasionalmente o haz alguna broma de vacas.
 """
 
 class LivestockViewSet(viewsets.ModelViewSet):
     queryset = Livestock.objects.all() 
     serializer_class = LivestockSerializer 
+
+    @action(detail=True, methods=['get'])
+    def trazabilidad_financiera(self, request, pk=None):
+        try:
+            animal = self.get_object()
+            
+            # --- 1. HISTORIAL DE PESOS (El secreto para saber cuánto costó vs cuánto vale hoy) ---
+            # Buscamos el primer y el último pesaje registrado
+            primer_pesaje = WeightControl.objects.filter(animal=animal, estado=1).order_by('fecha').first()
+            ultimo_pesaje = WeightControl.objects.filter(animal=animal, estado=1).order_by('-fecha').first()
+
+            peso_inicial = float(primer_pesaje.peso) if primer_pesaje else float(animal.peso)
+            peso_actual = float(ultimo_pesaje.peso) if ultimo_pesaje else float(animal.peso)
+
+            # Asumimos precio del kilo en pie (puedes jalarlo de MarketPrice si lo tienes)
+            precio_kilo_pie = 60.0 
+
+            # --- 2. LO QUE NOS HA COSTADO EL ANIMAL (INVERSIÓN REAL) ---
+            # Si el usuario no puso costo_compra manual, calculamos cuánto costó cuando llegó por su peso inicial
+            inversion_inicial = float(animal.costo_compra) if animal.costo_compra else (peso_inicial * precio_kilo_pie)
+            
+            # Gastos Médicos
+            historial_salud = HealthAction.objects.filter(animal=animal, estado=1)
+            gasto_salud = 0
+            for sanidad in historial_salud:
+                try:
+                    producto = Products.objects.get(id=sanidad.tipo_evento)
+                    import re
+                    dosis_limpia = re.findall(r"[-+]?\d*\.\d+|\d+", str(sanidad.dosis))
+                    dosis_num = float(dosis_limpia[0]) if dosis_limpia else 0
+                    gasto_salud += (dosis_num * float(producto.precio_actual))
+                except Exception:
+                    pass
+            
+            inversion_total = inversion_inicial + gasto_salud
+
+            # --- 3. VALORIZACIÓN DEL ACTIVO (Lo que vale el animal vivo HOY) ---
+            valor_mercado_actual = peso_actual * precio_kilo_pie
+
+            # --- 4. RENTABILIDAD SEGÚN SEXO ---
+            if animal.sexo == 'Hembra' or animal.sexo == 'Vaca':
+                # La hembra genera valor por partida doble: Se pone gorda (carne) y da leche
+                producciones = MilkProduction.objects.filter(animal=animal, estado=1)
+                total_leche = sum(float(p.liters_produced) for p in producciones)
+                
+                prod_leche = Products.objects.filter(nombre__icontains='Leche').first()
+                precio_leche = float(prod_leche.precio_actual) if prod_leche else 0
+                
+                ingreso_leche = total_leche * precio_leche
+                
+                # GANANCIA = (Valor de la vaca hoy + Leche) - (Lo que costó la vaca antes + Vacunas)
+                ingreso_bruto_total = valor_mercado_actual + ingreso_leche
+                margen_neto = ingreso_bruto_total - inversion_total
+                
+                datos_roi = {
+                    'modelo': 'Producción y Engorde (Hembra)',
+                    'metrica_clave': f"{total_leche} L | {peso_actual} KG",
+                    'ingreso_bruto': ingreso_bruto_total,
+                    'inversion_total': inversion_total,
+                    'margen_neto': margen_neto,
+                    'rentabilidad': round((margen_neto / inversion_total * 100), 2) if inversion_total > 0 else 0
+                }
+            else:
+                # El macho solo genera valor engordando
+                ingreso_bruto_total = valor_mercado_actual
+                margen_neto = ingreso_bruto_total - inversion_total
+                
+                datos_roi = {
+                    'modelo': 'Engorde / Carne (Macho)',
+                    'metrica_clave': f"{peso_actual} KG (Peso actual)",
+                    'ingreso_bruto': ingreso_bruto_total, 
+                    'inversion_total': inversion_total,
+                    'margen_neto': margen_neto,
+                    'rentabilidad': round((margen_neto / inversion_total * 100), 2) if inversion_total > 0 else 0
+                }
+
+            return Response({
+                'id': animal.id,
+                'identificador': animal.nombre or f"Chapa {animal.chapa}",
+                'raza': animal.raza,
+                'inversion_desglose': {
+                    'inicial': inversion_inicial,
+                    'salud': gasto_salud
+                },
+                'finanzas': datos_roi
+            })
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -98,7 +195,9 @@ class LivestockViewSet(viewsets.ModelViewSet):
         if estado:
             queryset = queryset.filter(estado=estado)
         if search:
-            queryset = queryset.filter(nombre__icontains=search) 
+           queryset = queryset.filter(
+                Q(nombre__icontains=search) | Q(chapa__icontains=search)
+            ) 
 
         return queryset
 
@@ -184,19 +283,30 @@ class MilkProductionViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
-        registro = serializer.save()
-        
-        producto_leche = Products.objects.filter(nombre__icontains='Leche').first()
-        
-        if producto_leche:
+        with transaction.atomic():
+            # Buscamos el producto ANTES de guardar la ordeña
+            producto_leche = Products.objects.filter(nombre__icontains='Leche').first()
+            
+            # 🔥 Si no existe, explotamos el proceso y le avisamos a React
+            if not producto_leche:
+                raise ValidationError({"error": "No se encontró el producto 'Leche' en el inventario. Créalo primero en el módulo de Productos antes de registrar ordeñas."})
+            
+            # Si sí existe, guardamos todo normal
+            registro = serializer.save()
+            
+            # Registramos el movimiento
             InventoryMovement.objects.create(
                 producto=producto_leche,
                 tipo_movimiento='Entrada',
                 cantidad=registro.liters_produced,
+                costo_unitario=0, # La producción interna no te cuesta al momento de registrarla
                 motivo='Producción Diaria',
                 observaciones=f'Ordeño registrado el {registro.date}'
             )
-    
+            
+            # Sumamos los litros al stock real
+            producto_leche.stock += registro.liters_produced
+            producto_leche.save()
 
 class SalesViewSet(viewsets.ModelViewSet):
     queryset = Sales.objects.filter(estado=1).order_by('-sale_date', '-id')
@@ -296,16 +406,16 @@ class FinanceSummaryView(APIView):
             caja_obj = CashRegister.objects.order_by('-fecha_registro').first()
             saldo_inicial = float(caja_obj.saldo_inicial) if caja_obj else 0.0
 
-            # 👻 FIX: Filtramos por estado=1 para ignorar compras archivadas
+         
             gastos_totales = InventoryMovement.objects.filter(
                 estado=1,
                 tipo_movimiento='Entrada', 
                 motivo__icontains='Compra'
-            ).aggregate(total=Sum('costo_unitario'))['total'] or 0.0
+            ).aggregate(total=Sum(F('cantidad') * F('costo_unitario')))['total'] or 0.0
             
             gastos_totales = float(gastos_totales)
 
-            # 👻 FIX: Filtramos por estado=1 para ignorar ventas archivadas
+         
             ingresos_totales = InventoryMovement.objects.filter(
                 estado=1,
                 tipo_movimiento='Salida',
@@ -316,7 +426,6 @@ class FinanceSummaryView(APIView):
 
             dinero_en_caja = saldo_inicial + ingresos_totales - gastos_totales
 
-            # El ganado ya tenía el filtro correctamente
             inventario_ganado_vivo = sum(float(animal.valor_estimado) for animal in Livestock.objects.filter(estado=1))
 
             inventario_bodega = Products.objects.filter(estado=1).aggregate(
@@ -363,11 +472,8 @@ class FinanceSummaryView(APIView):
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
-            print("\n" + "="*40)
-            print("ERROR EN EL ENDPOINT DE FINANZAS:")
-            print(repr(e))
-            print("="*40 + "\n")
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class ReportGeneratorView(APIView):
     def get(self, request):
@@ -381,195 +487,220 @@ class ReportGeneratorView(APIView):
             desde = datetime.strptime(desde_str, '%Y-%m-%d')
             hasta = datetime.strptime(hasta_str, '%Y-%m-%d') + timedelta(days=1) - timedelta(seconds=1)
 
-            # --- 1. CÁLCULO DE INGRESOS Y EGRESOS ---
-            movimientos_entrada = InventoryMovement.objects.filter(tipo_movimiento='Entrada', fecha_movimiento__range=[desde, hasta])
-            gastos = float(movimientos_entrada.aggregate(total=Sum('costo_unitario'))['total'] or 0.0)
+            # --- 1. CÁLCULO DE INGRESOS Y EGRESOS (CORREGIDO) ---
+            # Excluimos 'Producción' y multiplicamos cantidad * costo
+            movimientos_entrada = InventoryMovement.objects.filter(
+                tipo_movimiento='Entrada', fecha_movimiento__range=[desde, hasta]
+            ).exclude(motivo__icontains='Producción')
+            gastos = float(movimientos_entrada.aggregate(total=Sum(F('cantidad') * F('costo_unitario')))['total'] or 0.0)
             
-            movimientos_salida = InventoryMovement.objects.filter(tipo_movimiento='Salida', fecha_movimiento__range=[desde, hasta])
-            ingresos = float(movimientos_salida.aggregate(total=Sum(F('cantidad') * F('producto__precio_actual')))['total'] or 0.0)
-
-            detalle_ingresos = [
-                {'concepto': 'Venta de Leche', 'monto': ingresos * 0.4}, 
-                {'concepto': 'Venta de Ganado', 'monto': ingresos * 0.6},
-            ] if ingresos > 0 else []
-
-            detalle_egresos = [
-                {'concepto': 'Alimentación (Concentrado)', 'monto': gastos * 0.7},
-                {'concepto': 'Medicamentos y Vacunas', 'monto': gastos * 0.3},
-            ] if gastos > 0 else []
+            # Ingresos solo por Ventas
+            movimientos_salida = InventoryMovement.objects.filter(
+                tipo_movimiento='Salida', fecha_movimiento__range=[desde, hasta], motivo__icontains='Venta'
+            )
+            ingresos_ventas = float(movimientos_salida.aggregate(total=Sum(F('cantidad') * F('producto__precio_actual')))['total'] or 0.0)
 
             # --- 2. CÁLCULO DE PÉRDIDAS ANIMALES ---
-            animales_perdidos = Livestock.objects.filter(estado=0) 
-            total_perdidas_valor = sum(float(animal.valor_estimado or 0) for animal in animales_perdidos)
-            cantidad_perdidas = animales_perdidos.count()
+            try:
+                salidas_qs = Salida.objects.filter(fecha__range=[desde, hasta]).exclude(motivo__icontains='Venta')
+                tabla_bajas = []
+                total_perdidas_valor = 0.0
+                
+                for salida in salidas_qs:
+                    valor = float(getattr(salida.animal, 'costo_compra', getattr(salida.animal, 'valor_estimado', 0)) or 0)
+                    total_perdidas_valor += valor
+                    identificador = getattr(salida.animal, 'nombre', getattr(salida.animal, 'chapa', f"ID: {salida.animal.id}"))
+                    
+                    tabla_bajas.append({
+                        'chapa_nombre': identificador,
+                        'motivo': salida.motivo,
+                        'fecha': salida.fecha.strftime('%Y-%m-%d'),
+                        'perdida': valor
+                    })
+                cantidad_perdidas = salidas_qs.count()
+            except Exception:
+                animales_perdidos = Livestock.objects.filter(estado=0)
+                total_perdidas_valor = sum(float(animal.valor_estimado or 0) for animal in animales_perdidos)
+                cantidad_perdidas = animales_perdidos.count()
+                tabla_bajas = []
 
-            # --- 3. CÁLCULO DEL CAPITAL TOTAL ---
-            caja_obj = CashRegister.objects.order_by('-fecha_registro').first()
-            saldo_inicial = float(caja_obj.saldo_inicial) if caja_obj else 0.0
-            
-            dinero_en_caja = saldo_inicial + ingresos - gastos
-            inventario_ganado_vivo = sum(float(animal.valor_estimado or 0) for animal in Livestock.objects.filter(estado=1))
-            inventario_bodega = float(Products.objects.aggregate(total=Sum(F('stock') * F('precio_actual')))['total'] or 0.0)
-            
-            capital_total = dinero_en_caja + inventario_ganado_vivo + inventario_bodega
+            # --- 3. ANÁLISIS COSTO-BENEFICIO (ROI PRODUCTOS) ---
+            try:
+                ventas_productos = SalesDetails.objects.filter(
+                    venta__sale_date__range=[desde, hasta], 
+                    tipo_item='Producto', 
+                    estado=1
+                ).values('producto__id', 'producto__nombre', 'producto__unidad_medida').annotate(
+                    total_vendido=Sum('cantidad'),
+                    ingresos_totales=Sum('subtotal')
+                )
 
-            # --- 4. PRODUCCIÓN DE LECHE (Ajustado al modelo MilkProduction) ---
-            dias_rango = (hasta - desde).days
-            dias_rango = dias_rango if dias_rango > 0 else 1
+                tabla_roi_productos = []
+                for venta in ventas_productos:
+                    prod_id = venta['producto__id']
+                    nombre = venta['producto__nombre']
+                    unidad = venta['producto__unidad_medida']
+                    vendido = float(venta['total_vendido'] or 0)
+                    ingresos = float(venta['ingresos_totales'] or 0)
+
+                    movimientos_entrada_roi = InventoryMovement.objects.filter(
+                        producto_id=prod_id, tipo_movimiento='Entrada', estado=1, fecha_movimiento__lte=hasta
+                    ).aggregate(costo_promedio=Avg('costo_unitario'))
+
+                    costo_unitario_promedio = float(movimientos_entrada_roi['costo_promedio'] or 0)
+                    costo_total_estimado = costo_unitario_promedio * vendido
+                    ganancia_neta = ingresos - costo_total_estimado
+                    margen_porcentaje = ((ganancia_neta / costo_total_estimado) * 100) if costo_total_estimado > 0 else 100.0
+
+                    tabla_roi_productos.append({
+                        'producto': nombre,
+                        'unidad': unidad,
+                        'cantidad_vendida': vendido,
+                        'ingresos': ingresos,
+                        'costos': costo_total_estimado,
+                        'margen': ganancia_neta,
+                        'rentabilidad': round(margen_porcentaje, 2)
+                    })
+                
+                tabla_roi_productos = sorted(tabla_roi_productos, key=lambda x: x['margen'], reverse=True)
+            except Exception:
+                tabla_roi_productos = []
+
+            # --- B. ROI Ganado ---
+            try:
+                ventas_ganado_qs = SalesDetails.objects.filter(venta__sale_date__range=[desde, hasta], tipo_item='Ganado')
+                ingreso_ganado = sum(float(v.subtotal) for v in ventas_ganado_qs)
+                margen_ganado = ingreso_ganado - gastos 
+                
+                tabla_roi_ganado = [{
+                    'ingresos': ingreso_ganado,
+                    'gastos': gastos,
+                    'margen': margen_ganado,
+                    'estado': 'Ganancia' if margen_ganado >= 0 else 'Pérdida'
+                }]
+            except Exception:
+                tabla_roi_ganado = []
+
+            # --- 5. PRODUCCIÓN DE LECHE Y VALORACIÓN ---
+            dias_rango = max(1, (hasta - desde).days)
             semanas_rango = max(1, dias_rango / 7)
 
-            # Usamos 'date' en lugar de 'fecha'
             producciones_qs = MilkProduction.objects.filter(date__range=[desde, hasta])
-
-            # Usamos 'liters_produced' en lugar de 'litros'
             total_leche = float(producciones_qs.aggregate(total=Sum('liters_produced'))['total'] or 0.0)
             promedio_semanal = round(total_leche / semanas_rango, 2)
 
-            # Agrupamos por 'date'
+           
+            producto_leche = Products.objects.filter(nombre__icontains='Leche').first()
+            precio_leche = float(producto_leche.precio_actual) if producto_leche else 0.0
+            valor_leche_producida = total_leche * precio_leche
+
             prod_diaria = producciones_qs.values('date').annotate(total_litros=Sum('liters_produced')).order_by('date')
-            grafica_produccion = [
-                {
-                    'fecha': item['date'].strftime('%d %b'), 
-                    'litros': float(item['total_litros'])
-                } 
-                for item in prod_diaria
-            ]
+            grafica_produccion = [{'fecha': item['date'].strftime('%d %b'), 'litros': float(item['total_litros'])} for item in prod_diaria]
 
             tabla_produccion = []
-            # Ordenamos por '-date' (descendente)
             for p in producciones_qs.order_by('-date'):
-                # Accedemos a la relación con 'animal' en lugar de 'vaca'
-                identificador_vaca = getattr(p.animal, 'nombre', getattr(p.animal, 'tag', f"ID: {p.animal.id}"))
-                
-                tabla_produccion.append({
-                    'fecha': p.date.strftime('%Y-%m-%d'),
-                    'vaca': f"Vaca {identificador_vaca}",
-                    'litros': float(p.liters_produced)
-                })
+                identificador_vaca = getattr(p.animal, 'nombre', getattr(p.animal, 'chapa', f"ID: {p.animal.id}"))
+                tabla_produccion.append({'fecha': p.date.strftime('%Y-%m-%d'), 'vaca': f"Vaca {identificador_vaca}", 'litros': float(p.liters_produced)})
 
-          # A. Tabla de Sanidad (Vacunas, vitaminas, etc.)
+            # --- 4. CÁLCULO DEL CAPITAL TOTAL ---
+            caja_obj = CashRegister.objects.order_by('-fecha_registro').first()
+            saldo_inicial = float(caja_obj.saldo_inicial) if caja_obj else 0.0
+            
+            dinero_en_caja = saldo_inicial + ingresos_ventas - gastos
+            inventario_ganado_vivo = sum(float(animal.valor_estimado or 0) for animal in Livestock.objects.filter(estado=1))
+            inventario_bodega = float(Products.objects.aggregate(total=Sum(F('stock') * F('precio_actual')))['total'] or 0.0)
+            
+            # Sumamos la leche al capital global del periodo
+            capital_total = dinero_en_caja + inventario_ganado_vivo + inventario_bodega
+
+            # --- 6. SANIDAD Y PESAJE ---
             sanidad_qs = HealthAction.objects.filter(fecha__range=[desde, hasta]).order_by('-fecha')
-            tabla_sanidad = []
-            for s in sanidad_qs:
-                identificador = getattr(s.animal, 'nombre', getattr(s.animal, 'tag', f"ID: {s.animal.id}"))
-                tabla_sanidad.append({
-                    'fecha': s.fecha.strftime('%Y-%m-%d'),
-                    'vaca': f"Vaca {identificador}",
-                    'evento': s.tipo_evento,
-                    'dosis': s.dosis
-                })
+            tabla_sanidad = [{'fecha': s.fecha.strftime('%Y-%m-%d'), 'vaca': f"Vaca {getattr(s.animal, 'nombre', s.animal.id)}", 'evento': s.tipo_evento, 'dosis': s.dosis} for s in sanidad_qs]
 
-            # B. Tabla de Pesajes
-            peso_qs = WeightControl.objects.filter(fecha__range=[desde, hasta])
-            tabla_peso = []
-            for w in peso_qs.order_by('-fecha'):
-                identificador = getattr(w.animal, 'nombre', getattr(w.animal, 'tag', f"ID: {w.animal.id}"))
-                tabla_peso.append({
-                    'fecha': w.fecha.strftime('%Y-%m-%d'),
-                    'vaca': f"Vaca {identificador}",
-                    'peso': float(w.peso)
-                })
+            peso_qs = WeightControl.objects.filter(fecha__range=[desde, hasta]).order_by('-fecha')
+            tabla_peso = [{'fecha': w.fecha.strftime('%Y-%m-%d'), 'vaca': f"Vaca {getattr(w.animal, 'nombre', w.animal.id)}", 'peso': float(w.peso)} for w in peso_qs]
 
-            # C. Gráfica de Progreso de Peso (Promedio del hato por fecha de pesaje)
             peso_diario = peso_qs.values('fecha').annotate(promedio_peso=Avg('peso')).order_by('fecha')
-            grafica_peso = [
-                {
-                    'fecha': item['fecha'].strftime('%d %b'), 
-                    'peso': round(float(item['promedio_peso']), 2)
-                } 
-                for item in peso_diario
-            ]
-
-            # D. Cálculo del % de Crecimiento
+            grafica_peso = [{'fecha': item['fecha'].strftime('%d %b'), 'peso': round(float(item['promedio_peso']), 2)} for item in peso_diario]
+            
             crecimiento_pct = 0.0
-            if len(grafica_peso) > 1:
-                peso_inicial = grafica_peso[0]['peso']
-                peso_final = grafica_peso[-1]['peso']
-                if peso_inicial > 0:
-                    crecimiento_pct = round(((peso_final - peso_inicial) / peso_inicial) * 100, 2)
-            
-            # A. Historial de Movimientos
+            if len(grafica_peso) > 1 and grafica_peso[0]['peso'] > 0:
+                crecimiento_pct = round(((grafica_peso[-1]['peso'] - grafica_peso[0]['peso']) / grafica_peso[0]['peso']) * 100, 2)
+
+            # --- 7. INVENTARIO ---
             movimientos_qs = InventoryMovement.objects.filter(fecha_movimiento__range=[desde, hasta]).order_by('fecha_movimiento')
-            
             tabla_movimientos = []
             inventario_diario = {}
-            total_entradas_qty = 0
-            total_salidas_qty = 0
+            total_entradas_qty = total_salidas_qty = 0
 
             for m in movimientos_qs:
-                # Agrupamos por día para la gráfica
                 fecha_str = m.fecha_movimiento.strftime('%d %b')
-                tipo = m.tipo_movimiento
                 cant = float(m.cantidad)
-                
                 if fecha_str not in inventario_diario:
                     inventario_diario[fecha_str] = {'fecha': fecha_str, 'Entradas': 0, 'Salidas': 0}
                 
-                if tipo == 'Entrada':
+                if m.tipo_movimiento == 'Entrada':
                     inventario_diario[fecha_str]['Entradas'] += cant
                     total_entradas_qty += cant
                 else:
                     inventario_diario[fecha_str]['Salidas'] += cant
                     total_salidas_qty += cant
                     
-                # Llenamos la tabla de movimientos
-                tabla_movimientos.append({
-                    'fecha': m.fecha_movimiento.strftime('%Y-%m-%d'),
-                    'producto': m.producto.nombre,
-                    'tipo': tipo,
-                    'cantidad': cant,
-                    'motivo': m.motivo
-                })
+                tabla_movimientos.append({'fecha': m.fecha_movimiento.strftime('%Y-%m-%d'), 'producto': m.producto.nombre, 'tipo': m.tipo_movimiento, 'cantidad': cant, 'motivo': m.motivo})
                 
             grafica_inventario = list(inventario_diario.values())
-            # Invertimos la tabla para que los últimos movimientos salgan primero
             tabla_movimientos.reverse()
 
-            # B. Productos Activos (Stock Actual)
             productos_qs = Products.objects.all().order_by('categoria', 'nombre')
-            tabla_productos = []
-            for p in productos_qs:
-                tabla_productos.append({
-                    'nombre': p.nombre,
-                    'categoria': p.categoria,
-                    'stock': float(p.stock),
-                    'unidad': p.unidad_medida,
-                    'precio': float(p.precio_actual)
-                })
+            tabla_productos = [{'nombre': p.nombre, 'categoria': p.categoria, 'stock': float(p.stock), 'unidad': p.unidad_medida, 'precio': float(p.precio_actual)} for p in productos_qs]
 
-            # --- 6. EMPAQUETAR JSON (Actualizado) ---
+            # --- 8. EMPAQUETAR JSON ---
+            ingresos_totales = ingresos_ventas + valor_leche_producida
+
+            detalle_ingresos = [
+                {'concepto': 'Ventas Efectivas (Inventario)', 'monto': ingresos_ventas}, 
+                {'concepto': 'Valor Producción Leche (En Bodega)', 'monto': valor_leche_producida},
+            ]
+            
+            detalle_egresos = [
+                {'concepto': 'Gastos Operativos y Compras', 'monto': gastos},
+            ]
+
             report_data = {
                 'periodo': {'desde': desde_str, 'hasta': hasta_str},
                 'kpis': {
-                    'ganancia_neta': ingresos - gastos,
-                    'ingresos_brutos': ingresos,
+                    'ganancia_neta': ingresos_totales - gastos - total_perdidas_valor,
+                    'ingresos_brutos': ingresos_totales,
                     'gastos_operativos': gastos,
                     'capital_total': capital_total,
                     'perdidas_animales': total_perdidas_valor,
                     'cantidad_perdidas': cantidad_perdidas,
                     'total_animales': Livestock.objects.filter(estado=1).count(),
                     'produccion_leche': total_leche, 
+                    'valor_leche_producida': valor_leche_producida,
                     'promedio_semanal_leche': promedio_semanal,
-                    'rentabilidad': round(((ingresos - gastos) / ingresos * 100), 1) if ingresos > 0 else 0.0,
-                    'tratamientos_aplicados': sanidad_qs.count(), # Nuevo KPI
+                    'rentabilidad': round(((ingresos_totales - gastos) / ingresos_totales * 100), 1) if ingresos_totales > 0 else 0.0,
+                    'tratamientos_aplicados': sanidad_qs.count(),
                     'crecimiento_peso_pct': crecimiento_pct,
-                    'inventario_entradas': total_entradas_qty, # NUEVO
-                    'inventario_salidas': total_salidas_qty   # NUEVO     # Nuevo KPI
-
+                    'inventario_entradas': total_entradas_qty,
+                    'inventario_salidas': total_salidas_qty
                 },
                 'tablas': {
                     'ingresos': detalle_ingresos,
                     'egresos': detalle_egresos,
+                    'bajas_detalle': tabla_bajas,         
+                    'roi_productos': tabla_roi_productos,         
+                    'roi_ganado': tabla_roi_ganado,       
                     'produccion_detalle': tabla_produccion,
-                    'sanidad_detalle': tabla_sanidad,             # Nueva Tabla
-                    'peso_detalle': tabla_peso,                    # Nueva Tabla
-                    'movimientos_detalle': tabla_movimientos,  # NUEVO
-                    'productos_activos': tabla_productos       # NUEVO
+                    'sanidad_detalle': tabla_sanidad,
+                    'peso_detalle': tabla_peso,
+                    'movimientos_detalle': tabla_movimientos,
+                    'productos_activos': tabla_productos
                 },
                 'graficas': {
                     'produccion_leche': grafica_produccion,
-                    'progreso_peso': grafica_peso,                # Nueva Gráfica
-                    'flujo_inventario': grafica_inventario     # NUEVO
+                    'progreso_peso': grafica_peso,
+                    'flujo_inventario': grafica_inventario
                 },
                 'alertas': []
             }
@@ -579,9 +710,8 @@ class ReportGeneratorView(APIView):
         except Exception as e:
             print("\nERROR GENERANDO REPORTE:")
             print(repr(e))
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)\
+            
 '''Pruebas de implmentacion del chat bot de maxima calydahhh'''
 @api_view(['POST'])
 def recibir_mensaje_chat(request):
@@ -612,10 +742,27 @@ def recibir_mensaje_chat(request):
 @api_view(['POST'])
 def generar_backup_manual(request):
     try:
-        ruta_script = r"C:\FincaBackups\automate_backup.bat"
+        if os.name == 'nt': 
+            ruta_script = r"C:\FincaBackups\automate_backup.bat"
+        else:
+            ruta_script = "/home/softtty2028/FincaBackups/automate_backup.sh"
+
+        if not os.path.exists(ruta_script):
+            return Response(
+                {"error": f"No se encontró el script de backup en: {ruta_script}"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
         
-        subprocess.run([ruta_script], check=True, shell=True)
+        subprocess.run([ruta_script], check=True)
         
         return Response({"mensaje": "Copia de seguridad generada con éxito."}, status=status.HTTP_200_OK)
+        
+    except subprocess.CalledProcessError as e:
+        return Response({"error": f"El script de backup falló al ejecutarse: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except Exception as e:
-        return Response({"error": f"Error al generar backup: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"error": f"Error crítico al generar backup: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+class SystemAlertViewSet(viewsets.ModelViewSet):
+    queryset = SystemAlert.objects.filter(estado=1).order_by('-fecha_creacion')
+    serializer_class = SystemAlertSerializer

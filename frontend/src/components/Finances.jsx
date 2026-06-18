@@ -53,7 +53,7 @@ const FinancesPage = () => {
           <h1 className="text-3xl font-black text-green-900 flex items-center gap-3">
           Financial Management
           </h1>
-          <p className="text-sm text-amber-900 font-semibold mt-1">Real-time overview of ranch assets, cash flow, and profits.</p>
+          <p className="text-sm text-amber-900 font-semibold mt-1"></p>
         </div>
         <button 
           onClick={() => Swal.fire({title: 'Coming Soon!', text: 'Export to PDF/Excel will be available in the next update.', icon: 'info', confirmButtonColor: '#2563EB'})}

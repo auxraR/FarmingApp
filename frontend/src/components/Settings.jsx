@@ -271,7 +271,7 @@ export default function SettingsPage() {
           <h1 className="text-3xl font-black text-green-900 flex items-center gap-3">
             <Settings size={32} className="text-amber-800" /> Settings & Configurations
           </h1>
-          <p className="text-sm text-amber-900 font-semibold mt-1">Manage system parameters, groups, and security.</p>
+          <p className="text-sm text-amber-900 font-semibold mt-1"></p>
         </div>
       </div>
 

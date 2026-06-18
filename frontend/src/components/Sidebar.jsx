@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import Swal from 'sweetalert2';
+import logo from '../assets/logo2.png'
 
 import {
   LayoutDashboard,
@@ -32,7 +33,7 @@ const menuItems = [
   { name: "Inventory", path: "/inventory", icon: Boxes },
   { name: "OutFlow", path: "/outflow", icon: DoorOpen },
   { name: "Reports", path: "/reports", icon: BarChart3, restrictTo: "Gerente" },
-  { name: "Settings", path: "/settings", icon: Settings },
+  { name: "Settings", path: "/settings", icon: Settings, restrictTo: "Gerente" },
 ];
 
 export default function Sidebar() {
@@ -40,6 +41,8 @@ export default function Sidebar() {
   const location = useLocation();
   
   const userRole = localStorage.getItem('rol') || 'Capataz';
+  console.log("Rol actual:", userRole);
+  
   const isManager = userRole === 'Gerente';
 
   const filteredMenuItems = menuItems.filter(item => {
@@ -51,17 +54,19 @@ export default function Sidebar() {
 
   const handleLogout = () => {
     Swal.fire({
-      title: '¿Cerrar sesión?',
-      text: "Tendrás que volver a ingresar tus credenciales.",
+      title: '¿Log out?',
+      text: "You will need to re-enter your credentials.",
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#DC2626',
       cancelButtonColor: '#6B7280',
-      confirmButtonText: 'Sí, salir'
+      confirmButtonText: 'Yes, logout'
     }).then((result) => {
       if (result.isConfirmed) {
-        localStorage.removeItem('token'); 
-        sessionStorage.clear();
+        // 🔥 CORRECCIÓN 2: Limpiar todo el localStorage correctamente
+        localStorage.removeItem('access'); 
+        localStorage.removeItem('rol');
+        sessionStorage.clear(); // Por si quedó basura vieja
         window.location.href = '/login'; 
       }
     });
@@ -70,31 +75,31 @@ export default function Sidebar() {
   return (
     <aside
       className={cn(
-        "bg-ganadero-sidebar h-screen flex flex-col text-gray-400 transition-all duration-300 ease-in-out border-r border-white/5",
+        "bg-ganadero-sidebar h-screen sticky top-0 flex-shrink-0 z-50 flex flex-col text-gray-400 transition-all duration-300 ease-in-out border-r border-white/5",
         isCollapsed ? "w-20" : "w-64",
       )}
     >
       {/* Brand Header */}
       <div
         className={cn(
-          "p-6 flex items-center justify-between text-white",
-          isCollapsed && "justify-center px-0",
+          "pt-10 pb-6 px-4 flex items-center justify-between text-white border-b border-white/5",
+          isCollapsed && "justify-center px-0 pt-8",
         )}
       >
         {!isCollapsed && (
-          <h1 className="text-xl font-bold tracking-tight">CHOCOYO </h1>
+          <img src={logo} alt="Finca Baltodano" className="w-45 h-auto object-contain" />
         )}
 
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-ganadero-active transition-colors"
+          className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-ganadero-active transition-colors flex-shrink-0"
         >
           {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </button>
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex-1 px-3 space-y-1 mt-4 overflow-y-auto">
+      <nav className="flex-1 px-3 space-y-1 mt-4 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {filteredMenuItems.map((item) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
@@ -142,7 +147,7 @@ export default function Sidebar() {
           {!isCollapsed && (
             <div className="overflow-hidden">
               <p className="text-sm font-bold text-white truncate">
-                {isManager ? 'Gerencia' : 'Capataz'}
+                {isManager ? 'Management' : 'Farm foreman'}
               </p>
               <p className="text-[10px] text-gray-500 uppercase tracking-wider">
                 {userRole}
@@ -161,7 +166,7 @@ export default function Sidebar() {
           )}
         >
           <LogOut size={20} className={isCollapsed ? "" : "min-w-[20px]"} />
-          {!isCollapsed && <span className="text-sm">Cerrar Sesión</span>}
+          {!isCollapsed && <span className="text-sm">Log out</span>}
         </button>
 
       </div>

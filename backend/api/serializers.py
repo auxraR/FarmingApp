@@ -13,7 +13,8 @@ from .models import (
     SalesDetails,
     Salida,
     InventoryMovement,
-    MarketPrice
+    MarketPrice,
+    SystemAlert
 )
 
 class LivestockSerializer(serializers.ModelSerializer):
@@ -78,7 +79,7 @@ class MilkProductionSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = MilkProduction
-        fields = ['id', 'animal', 'animal_name', 'liters_produced', 'date']
+        fields = ['id', 'animal', 'animal_name', 'liters_produced', 'date', 'estado']
 
 
 class ClientSerializer(serializers.ModelSerializer):
@@ -100,10 +101,11 @@ class SalesDetailSerializer(serializers.ModelSerializer):
 
 class SalesSerializer(serializers.ModelSerializer):
     detalles = SalesDetailSerializer(many=True)
+    sale_date = serializers.DateField(format="%Y-%m-%d", read_only=True)
 
     class Meta:
         model = Sales
-        fields = ['id', 'client', 'sale_date', 'total', 'status', 'detalles']
+        fields = ['id', 'client', 'sale_date', 'total', 'estado', 'detalles']
 
     def create(self, validated_data):
         detalles_data = validated_data.pop('detalles')
@@ -152,4 +154,9 @@ class InventoryMovementSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = InventoryMovement
+        fields = '__all__'
+
+class SystemAlertSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SystemAlert
         fields = '__all__'

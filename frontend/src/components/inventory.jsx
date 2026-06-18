@@ -75,7 +75,7 @@ const InventoryPage = () => {
     e.preventDefault();
     try {
       if (isEditingProduct) {
-        await apiClient.put(`/products/${selectedProductId}/`, productForm);
+        await apiClient.patch(`/products/${selectedProductId}/`, productForm);
         Swal.fire({ title: 'Success', text: 'Product updated successfully', icon: 'success', timer: 1500, showConfirmButton: false });
       } else {
         await apiClient.post('/products/', { ...productForm, stock: 0 }); 
@@ -104,7 +104,7 @@ const InventoryPage = () => {
 
     if (result.isConfirmed) {
       try {
-        // 🔥 MAGIA DEL SOFT DELETE PARA EL PRODUCTO
+      
         await apiClient.patch(`/products/${id}/`, { estado: 0 });
         Swal.fire('Archived!', 'Product has been removed from view.', 'success');
         fetchData();
@@ -140,7 +140,7 @@ const InventoryPage = () => {
 
     if (result.isConfirmed) {
       try {
-        // 🔥 MAGIA DEL SOFT DELETE PARA EL MOVIMIENTO (KARDEX)
+      
         await apiClient.patch(`/inventory-movements/${id}/`, { estado: 0 });
         Swal.fire('Archived!', 'Record hidden.', 'success');
         fetchData();
@@ -182,7 +182,7 @@ const InventoryPage = () => {
           <h1 className="text-3xl font-black text-green-900 flex items-center gap-3">
           Warehouse & Inventory
           </h1>
-          <p className="text-sm text-amber-900 font-semibold mt-1">Manage farm supplies, products, and storage</p>
+          <p className="text-sm text-amber-900 font-semibold mt-1"></p>
         </div>
         
         <button 
@@ -234,7 +234,7 @@ const InventoryPage = () => {
       <div className="bg-white rounded-3xl shadow-lg shadow-stone-500/5 border border-stone-200 overflow-hidden">
         <div className="p-6 border-b border-stone-100 bg-[#FAF8F5] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h2 className="text-xl font-black flex items-center gap-2 text-green-900">
-            <Package size={22} className="text-amber-800" /> Movement History (Ledger)
+            <Package size={22} className="text-amber-800" /> Movement History 
           </h2>
           
           <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">

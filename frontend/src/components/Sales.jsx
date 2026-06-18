@@ -166,7 +166,7 @@ const SalesPage = () => {
           <h1 className="text-3xl font-black text-green-900 flex items-center gap-3">
             Point of Sale
           </h1>
-          <p className="text-sm text-amber-900 font-semibold mt-1">Manage farm sales and transactions</p>
+          <p className="text-sm text-amber-900 font-semibold mt-1"></p>
         </div>
       </div>
 

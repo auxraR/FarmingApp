@@ -1,5 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import User
+import qrcode
+from io import BytesIO
+from django.core.files import File
+from PIL import Image
 
 class MarketPrice(models.Model):
     categoria = models.CharField(max_length=50, unique=True)
@@ -16,12 +20,12 @@ class MarketPrice(models.Model):
 class Livestock(models.Model):
     id = models.AutoField(primary_key=True, db_column='ID_ganado')
     
-    nombre = models.CharField(max_length=100, db_column='Nombre')
+    nombre = models.CharField(max_length=100, db_column='Nombre', null=True, blank=True)
     fecha_nacimiento = models.DateField(db_column='Fecha_nacimiento', null=True, blank=True)
     edad = models.IntegerField(db_column='Edad', null=True, blank=True)
-    peso = models.DecimalField(max_digits=7, decimal_places=2, db_column='Peso')
-    raza = models.CharField(max_length=50, db_column='Raza')
-    sexo = models.CharField(max_length=10, db_column='Sexo')
+    peso = models.DecimalField(max_digits=7, decimal_places=2, db_column='Peso',null=True, blank=True)
+    raza = models.CharField(max_length=50, db_column='Raza', null=True, blank=True)
+    sexo = models.CharField(max_length=10, db_column='Sexo', null=True, blank=True)
     id_madre = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, 
                                  db_column='ID_madre', related_name='hijos_madre')
     id_padre = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, 
@@ -31,16 +35,45 @@ class Livestock(models.Model):
     estado = models.IntegerField(db_column='Estado', default=1)
     batch = models.ForeignKey('Batch', on_delete=models.SET_NULL, null=True, blank=True, db_column='batch')
     imagen = models.ImageField(upload_to='Ganados/', null=True, blank=True)
-    
+    qr_code = models.ImageField(upload_to='qr_codes/', null=True, blank=True, db_column='Codigo_QR')
+    chapa = models.CharField(max_length=50, null=True, blank=True, unique=True)
+    costo_compra = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     categoria = models.ForeignKey(
         MarketPrice, 
         on_delete=models.RESTRICT, 
-        db_column='categoria_id'
+        db_column='categoria_id',
+        null=True,
+        blank=True
     )
     valor_manual = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        base_url = "http://192.168.1.12:5173/animal-ficha/"
+        url_a_codificar = f"{base_url}{self.id}"
+
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(url_a_codificar)
+        qr.make(fit=True)
+
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        nombre_limpio = str(self.nombre).replace(" ", "_")
+        fname = f'qr_{self.id}_{nombre_limpio}.png'
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        self.qr_code.save(fname, File(buffer), save=False)
+        
+        super().save(update_fields=['qr_code'])
+
     class Meta:
-        managed = False  
+        managed = True  
         db_table = 'Ganado'
 
     @property
@@ -160,9 +193,7 @@ class Sales(models.Model):
     client = models.ForeignKey(Client, on_delete=models.DO_NOTHING, db_column='ID_cliente', null=True, blank=True)
     sale_date = models.DateTimeField(auto_now_add=True, db_column='Fecha_venta')
     total = models.DecimalField(max_digits=12, decimal_places=2, db_column='Total')
-    status = models.CharField(max_length=50, db_column='Estado', default='Completada')
-    estado = models.IntegerField(default=1)
-
+    estado = models.IntegerField(default=1, db_column='Estado')
     class Meta:
         managed = True
         db_table = 'Ventas'
@@ -177,10 +208,10 @@ class SalesDetails(models.Model):
     cantidad = models.DecimalField(max_digits=10, decimal_places=2, db_column='Cantidad')
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, db_column='Subtotal')
     observaciones = models.CharField(max_length=255, null=True, blank=True, db_column='Observaciones')
-    estado = models.IntegerField(default=1)
+    estado = models.IntegerField(default=1, db_column='Estado')
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'Detalle_venta'
 
 
@@ -233,3 +264,17 @@ class CashRegister(models.Model):
 
     class Meta:
         db_table = 'Control_Caja'
+
+class SystemAlert(models.Model):
+    id = models.AutoField(primary_key=True, db_column='ID_alerta')
+    tipo = models.CharField(max_length=50, db_column='Tipo')
+    texto = models.CharField(max_length=255, db_column='Texto')
+    leida = models.BooleanField(default=False, db_column='Leida')
+    identificador_unico = models.CharField(max_length=100, unique=True, db_column='Identificador')
+    fecha_creacion = models.DateTimeField(auto_now_add=True, db_column='Fecha_creacion')
+    estado = models.IntegerField(default=1)
+
+    class Meta:
+        managed = True
+        db_table = 'Alertas_Sistema'
+        ordering = ['-fecha_creacion']

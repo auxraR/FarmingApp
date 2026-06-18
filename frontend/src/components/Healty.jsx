@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import apiClient from '../api/client';
 import Swal from 'sweetalert2';
-import { Search, Activity, Syringe, Calendar as CalendarIcon, Scale, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Activity, Syringe, Calendar as CalendarIcon, Scale, Plus, ChevronLeft, ChevronRight, Hash } from 'lucide-react';
 
 export default function HealthPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -44,7 +44,8 @@ export default function HealthPage() {
     const delayDebounceFn = setTimeout(async () => {
       if (searchTerm.trim().length > 1) {
         try {
-          const res = await apiClient.get(`/livestock/?search=${searchTerm}`);
+          // 🔥 CORRECCIÓN 1: Agregamos &estado=1 para que no traiga vacas "fantasmas" eliminadas
+          const res = await apiClient.get(`/livestock/?search=${searchTerm}&estado=1`);
           
           let data = [];
           if (Array.isArray(res.data)) {
@@ -71,7 +72,6 @@ export default function HealthPage() {
     
     try {
       const [weightRes, vaccineRes] = await Promise.all([
-        // Asegúrate de que el backend ya esté filtrando estado=1 si agregas soft-delete a estas tablas luego
         apiClient.get(`/weight-control/?animal_id=${animal.id}`),
         apiClient.get(`/health-actions/?animal_id=${animal.id}`) 
       ]);
@@ -297,15 +297,20 @@ export default function HealthPage() {
       {/* HEADER & SEARCH */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black flex items-center gap-2 text-green-900"><Activity className="text-green-700"/> Health & Weight</h1>
-          <p className="text-sm text-amber-900 font-semibold mt-1">Track vaccinations and weight progression.</p>
+          <h1 className="text-3xl font-black flex items-center gap-2 text-green-900"> 
+          <img 
+        src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ2xsejVmN3V0NmNycWM0Z3JsZnphem51Zmg3YjI3YjBkYzB4dW9rYiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/G711mNIcUXqLk6lYcZ/giphy.gif" 
+        alt="Cool Sticker" 
+        style={{ width: '70px', height: 'auto' }} 
+      />Health & Weight</h1>
+          <p className="text-sm text-amber-900 font-semibold mt-1"></p>
         </div>
         
         <div className="relative w-full md:w-96 z-50">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
           <input 
             type="text" 
-            placeholder="Search animal by name or ID..." 
+            placeholder="Search animal by Ear Tag (Chapa) or Name..." 
             className="w-full bg-white border border-stone-300 rounded-xl py-2.5 pl-10 pr-4 outline-none focus:border-green-800 focus:ring-4 focus:ring-green-800/10 transition-all shadow-sm font-semibold text-stone-800 placeholder-stone-400"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -320,8 +325,11 @@ export default function HealthPage() {
                   className="p-4 hover:bg-stone-50 cursor-pointer flex justify-between items-center border-b border-stone-100 last:border-0"
                 >
                   <div>
-                    <p className="font-black text-green-900">{animal.nombre}</p>
-                    <p className="text-[10px] text-stone-500 font-bold">Tag: #{animal.id} • Breed: {animal.raza}</p>
+                    <p className="font-black text-green-900">{animal.nombre || 'No Name'}</p>
+                    {/* 🔥 CORRECCIÓN 2: Mostrar Chapa en el dropdown */}
+                    <p className="text-[10px] text-stone-500 font-bold flex items-center gap-1 mt-0.5">
+                      <Hash size={10}/> Tag: #{animal.chapa || animal.id} • Breed: {animal.raza}
+                    </p>
                   </div>
                   <span className="font-mono text-sm font-bold text-stone-700">{animal.peso} kg</span>
                 </div>
@@ -344,8 +352,11 @@ export default function HealthPage() {
             
             {/* ANIMAL SUMMARY CARD */}
             <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-lg shadow-stone-500/5 relative overflow-hidden">
-              <p className="text-sm font-black text-amber-800 mb-1 relative z-10 uppercase tracking-widest">Tag: #{selectedAnimal.id}</p>
-              <h2 className="text-3xl font-black text-green-900 relative z-10">{selectedAnimal.nombre}</h2>
+              {/* 🔥 CORRECCIÓN 3: Mostrar Chapa en la tarjeta principal */}
+              <p className="text-sm font-black text-amber-800 mb-1 relative z-10 uppercase tracking-widest flex items-center gap-1">
+                <Hash size={14}/> Tag: #{selectedAnimal.chapa || selectedAnimal.id}
+              </p>
+              <h2 className="text-3xl font-black text-green-900 relative z-10">{selectedAnimal.nombre || 'No Name'}</h2>
               <div className="flex gap-3 mt-4 relative z-10">
                 <span className="bg-stone-100 text-stone-700 px-3 py-1 rounded-lg text-xs font-black border border-stone-200">{selectedAnimal.raza}</span>
                 <span className="bg-stone-100 text-stone-700 px-3 py-1 rounded-lg text-xs font-black border border-stone-200">{selectedAnimal.sexo === 'Hembra' ? 'Female' : 'Male'}</span>
